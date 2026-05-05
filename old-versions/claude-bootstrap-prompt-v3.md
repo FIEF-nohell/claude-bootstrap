@@ -155,62 +155,6 @@ Create these folders and put a small `README.md` in each describing what belongs
 
 Each folder's `README.md` should be 2-4 sentences explaining purpose and naming convention.
 
-Also seed `.docs/rules/plan-execution.md` with this exact content (skip if it exists):
-
-```markdown
-# Rule: Plans are stateful, checkbox-driven, and resumable
-
-Every non-trivial task in this repo runs against a written plan in `.docs/plans/`. Plans are not write-once documents. They are the live source of truth for "what is done, what is next, where do we pick up if the agent stops."
-
-## Plan structure (mandatory)
-
-Every plan file MUST have this frontmatter:
-
-```yaml
----
-status: in-progress | done | abandoned
-created: YYYY-MM-DD
-updated: YYYY-MM-DD
-goal: <one sentence>
----
-```
-
-And this body structure:
-
-1. **Goal** (one sentence, same as frontmatter)
-2. **Inputs** (rules and learnings consulted)
-3. **Affected files** (path + one-line change description)
-4. **Risks / Unknowns**
-5. **Done criteria**
-6. **Milestones** - the heart of the plan. Each milestone has:
-   - A short title
-   - A one-line outcome
-   - A checklist of tasks, each as `- [ ] ...` checkboxes
-   - Tasks are independently verifiable. No task should be larger than a single focused work session.
-7. **Log** - append-only section. Each entry is `- YYYY-MM-DD HH:MM <short note>`. Used to record decisions, deviations, blockers, and resume points.
-
-## Execution protocol
-
-- The implementer ticks `- [ ]` to `- [x]` **as soon as a task is finished**, before moving to the next task. Not at the end of the milestone, not at the end of the session.
-- After each tick, the implementer updates the `updated:` field in frontmatter to today's date.
-- If the implementer makes a decision that deviates from the plan, it appends a Log entry explaining why and edits the affected milestone or task list to match reality.
-- When all tasks across all milestones are checked, the implementer flips `status:` to `done` and appends a final Log entry.
-
-## Resume protocol (this is why the structure exists)
-
-At the start of every session, before doing any new work, the main agent MUST:
-
-1. Glob `.docs/plans/*.md` and read the frontmatter of each.
-2. Identify any plan with `status: in-progress`.
-3. If one or more in-progress plans exist, surface them to the user with: filename, goal, and the next unchecked task. Ask whether to resume, switch to the new request, or abandon (set `status: abandoned`).
-4. Do not silently start new work while a plan is in-progress. The user decides.
-
-If the user starts a new feature request and an in-progress plan is unrelated, that is fine - just confirm explicitly rather than assuming.
-
-## Why
-Sessions get interrupted. Context windows fill up. The user closes the terminal. Without a checkbox-driven plan, a partially-finished feature looks identical to a not-started feature, and the agent either redoes work or abandons it. Checkboxes plus a Log give any future session enough information to pick up exactly where the last one stopped.
-```
-
 Also seed `.docs/rules/agent-docs-sync.md` with this exact content (skip if it exists):
 
 ```markdown
@@ -249,36 +193,22 @@ model: sonnet
 You are the planner. Your only job is to produce a written implementation plan before code gets touched.
 
 ## Process
-1. Read CLAUDE.md, then read every file in .docs/rules/ and the three most recent files in .docs/learnings/. These are non-negotiable inputs. The rule `.docs/rules/plan-execution.md` defines the exact plan format - follow it.
+1. Read CLAUDE.md, then read every file in .docs/rules/ and the three most recent files in .docs/learnings/. These are non-negotiable inputs.
 2. Read the relevant existing code (Grep + Read). Do not skim. If the task touches a file, you have read that file.
 3. Identify the smallest viable change set. List affected files with one-line descriptions of what changes in each.
 4. Call out unknowns explicitly. If you are guessing, say so.
-5. Write the plan to `.docs/plans/YYYY-MM-DD-<short-slug>.md`. Required frontmatter:
-   ```yaml
-   ---
-   status: in-progress
-   created: YYYY-MM-DD
-   updated: YYYY-MM-DD
-   goal: <one sentence>
-   ---
-   ```
-   Required sections, in this order:
-   - **Goal** (one sentence, mirrors frontmatter)
-   - **Inputs** (rules and learnings consulted, by filename)
+5. Write the plan to `.docs/plans/YYYY-MM-DD-<short-slug>.md` with this structure:
+   - **Goal** (one sentence)
+   - **Inputs** (rules and learnings consulted)
    - **Affected files** (path + one-line change description)
+   - **Steps** (numbered, each step independently verifiable)
    - **Risks / Unknowns**
    - **Done criteria** (how the implementer knows they are finished)
-   - **Milestones** - break the work into 2-6 milestones. Each milestone has:
-     - A short title (`### Milestone N: <title>`)
-     - A one-line outcome
-     - A checklist of tasks as `- [ ] ...`. Tasks must be independently verifiable and small enough that finishing one is a clear moment, not a vague feeling.
-   - **Log** - empty list at creation. The implementer appends to it.
 
 ## Hard rules
 - Never write code. You write plans.
 - If the task is genuinely a one-line trivial change, say so and skip the plan. Do not invent ceremony.
 - If existing rules or learnings forbid the approach you would otherwise take, surface that and propose an alternative.
-- Milestones and tasks are the contract with the implementer. Vague tasks like "wire it up" are not acceptable - name the file, the function, or the verifiable outcome.
 ```
 
 #### `.claude/agents/implementer.md`
@@ -294,21 +224,14 @@ model: sonnet
 You are the implementer. Your job is to execute a plan that already exists.
 
 ## Process
-1. Read the plan you have been given (path to file in .docs/plans/). Confirm `status: in-progress` in frontmatter.
-2. Read CLAUDE.md and every file in .docs/rules/, especially `.docs/rules/plan-execution.md`.
-3. Find the first unchecked `- [ ]` task in the first milestone that has any. That is your current task.
-4. Execute that task. After finishing it:
-   - Flip `- [ ]` to `- [x]` in the plan file. Do this BEFORE starting the next task, not at the end of the session.
-   - Update the `updated:` field in frontmatter to today's date.
-   - If the task changed code, run the project's verification command if known (lint, typecheck, test). If unknown, do not make one up.
-5. Move to the next unchecked task. Repeat step 4.
-6. If you make a decision that deviates from the plan (different approach, extra task discovered, milestone split), append a Log entry like `- YYYY-MM-DD HH:MM <short note>` and edit the milestone/task list to reflect reality. Do this in the same edit.
-7. When all tasks across all milestones are checked, flip `status:` from `in-progress` to `done`, append a final Log entry, and append a short `## Completion` section summarizing what was built.
+1. Read the plan you have been given (path to file in .docs/plans/).
+2. Read CLAUDE.md and every file in .docs/rules/.
+3. Execute the plan step by step. Each step is independently verifiable.
+4. After each step that changes code, run the project's verification command if known (lint, typecheck, test). If unknown, do not make one up.
+5. When done, write a short completion note as a comment on the plan file (append a `## Completion` section at the bottom).
 
 ## Hard rules
-- Tick checkboxes live, not retroactively. A future session reading the plan must be able to trust the boxes.
 - If the plan is missing information you need to make a correct decision, stop and surface the gap. Do not improvise.
-- If you stop mid-task (interrupted, blocked, user paused), append a Log entry naming exactly where you stopped and what the next action is. Leave `status:` as `in-progress`.
 - Never modify .docs/rules/ files. Those are owned by the user and the learner agent.
 - Never run destructive commands (force push, hard reset, rm -rf) without explicit user approval.
 - Match existing code style. Do not refactor unrelated code.
@@ -477,19 +400,6 @@ Before starting any task, read in this order:
 
 If a task touches an area that has a relevant older learning (e.g. you are about to edit auth code, and there is an old learning tagged `auth`), read that one too. Use Grep on `.docs/learnings/` to find tag matches.
 
-## Resume protocol (check before starting any new work)
-
-Sessions get interrupted. Before starting a new task, scan for unfinished work:
-
-1. Glob `.docs/plans/*.md` and check the `status:` frontmatter field of each.
-2. If any plan has `status: in-progress`, surface it to the user with: filename, goal, the next unchecked `- [ ]` task, and the most recent Log entry.
-3. Ask the user: resume the in-progress plan, switch to the new request (leaving the old plan in-progress), or abandon it (set `status: abandoned` with a Log entry explaining why).
-4. Do not silently start fresh work while a plan is in-progress.
-
-If the user's request is itself the continuation of an existing plan, jump straight to the implementer with that plan path.
-
-See `.docs/rules/plan-execution.md` for the full plan format and execution protocol.
-
 ## Repository layout for AI machinery
 
 ```
@@ -520,8 +430,7 @@ Anything markdown that is not user-facing documentation goes in `.docs/`. User-f
 
 ### Routing heuristics
 
-- "Build me X" / "let's add feature X" of any non-trivial size: `planner` -> `implementer` -> `reviewer` -> `learner`. The planner writes a milestone+checkbox plan to `.docs/plans/`; the implementer ticks boxes live as it goes.
-- "Continue / resume / pick up where we left off": find the `status: in-progress` plan in `.docs/plans/`, hand it to `implementer`.
+- "Build me X" of any non-trivial size: `planner` -> `implementer` -> `reviewer` -> `learner`.
 - "Fix this bug": `debugger` -> `implementer` (to apply the fix) -> `learner`.
 - "Where is X / how does Y work": `researcher`.
 - "I just corrected you / that detour was painful / we discovered a constraint": invoke `learner` immediately, or run `/learn`.
@@ -543,7 +452,7 @@ If you finish a task and decide it does not warrant invoking the learner, that i
 
 ## Hard conventions
 
-- Plans live in `.docs/plans/`. Filename format: `YYYY-MM-DD-<short-slug>.md`. Format and execution protocol defined in `.docs/rules/plan-execution.md`. Plans carry `status:` frontmatter (`in-progress` / `done` / `abandoned`), milestone+checkbox bodies, and an append-only Log.
+- Plans live in `.docs/plans/`. Filename format: `YYYY-MM-DD-<short-slug>.md`.
 - Learnings live in `.docs/learnings/`. Filename format: `YYYY-MM-DD-<short-slug>.md`. Frontmatter required (`date`, `tags`, `severity`, `applies-to`).
 - Rules live in `.docs/rules/`. One concept per file. Short, imperative.
 - Research notes live in `.docs/research/`. Filename format: `YYYY-MM-DD-<short-slug>.md`.
