@@ -21,21 +21,6 @@ Do not skip phases. Do not reorder phases. Do not announce each phase to the use
 
 ## Phase 1: Infrastructure setup
 
-### 1.0 Detect Obsidian vault (optional integration)
-
-This bootstrap integrates with the user's Obsidian "second brain" vault if one is configured. The vault is a cross-project summary layer; this project remains the source of truth for code. The integration is fully optional. If no vault is present, every later step that mentions the vault is a silent no-op.
-
-Detect in this order:
-1. Read `$env:OBSIDIAN_VAULT_PATH` (PowerShell) or `$OBSIDIAN_VAULT_PATH` (bash).
-2. If unset, read `~/.claude/settings.json` and look for `env.OBSIDIAN_VAULT_PATH`.
-3. If a path is found, verify the directory exists and contains `_CLAUDE.md` at its root.
-
-Record the outcome internally for the rest of Phase 1:
-- **Vault present**: the path resolves to a directory and `_CLAUDE.md` exists there. Continue with vault-aware behavior in steps 1.7, 1.8.1, and Phase 3.
-- **Vault absent**: env var missing, path does not exist, or no `_CLAUDE.md` at its root. Skip every "if vault present" branch below. The bootstrap still completes; the project is standalone.
-
-Never create a vault. Never write to a path the user did not provide. If detection is ambiguous (e.g. the path exists but `_CLAUDE.md` is missing), treat the vault as absent and continue.
-
 ### 1.1 Detect state
 
 Check the current working directory for each of these. Decide per-file, not per-project. A repo can have a `CLAUDE.md` but no `.claude/` folder.
@@ -457,9 +442,9 @@ You are the learner. Your job is to make sure the project gets smarter over time
 - Agent files and their documentation in CLAUDE.md/AGENTS.md must always be in sync. If you find them out of sync, fix it before doing anything else.
 ```
 
-### 1.7 Create slash commands
+### 1.7 Create the `/learn` slash command
 
-Write `.claude/commands/learn.md`. Skip if it exists.
+Write this to `.claude/commands/learn.md`. Skip if it exists.
 
 ```markdown
 ---
@@ -467,28 +452,6 @@ description: Invoke the learner agent to distill lessons from the recent session
 ---
 
 Invoke the learner subagent now. Have it reflect on the recent session, distill any genuine lessons, and append them to `.docs/learnings/`. If the learner identifies flaws in any agent file or in CLAUDE.md, it should fix them directly without asking.
-```
-
-**If an Obsidian vault was detected in step 1.0**, also write `.claude/commands/vault-sync.md`. Skip if it exists. If no vault was detected, do not write this file.
-
-```markdown
----
-description: Push this project's current state to the Obsidian second-brain vault. Updates the project note, appends a dev log if substantive work happened, appends log.md, and updates index.md. No-op if no vault is reachable at runtime.
----
-
-Detect the Obsidian vault at runtime: read `$env:OBSIDIAN_VAULT_PATH` first, then `~/.claude/settings.json` `env.OBSIDIAN_VAULT_PATH`. If neither resolves to a directory containing `_CLAUDE.md` at its root, print "no vault configured" and stop.
-
-If the vault is reachable:
-
-1. Read the vault's `_CLAUDE.md` to learn its conventions (folder map, AI-first rule, naming, propagation rules, voice). Those rules win over this command's defaults if they conflict.
-2. Determine this project's slug. Prefer in order: `package.json` `name`, the repo folder name, an explicit user confirmation. Slug must be lowercase, hyphen-separated, no spaces.
-3. Read or create `<vault>/Projects/<slug>.md` per the vault's AI-first rule (frontmatter `date`, `type: project`, `tags: [project]`, `ai-first: true`; `## For future Claude` preamble; status, stack, repo path, active threads, key decisions, open questions). If the note already exists, update sections that changed. Never overwrite content the user wrote.
-4. If this session did substantive work (a commit on a non-trivial change, a feature, a meaningful decision, a structural refactor), append a dev log at `<vault>/Dev Logs/YYYY-MM-DD - <slug> - <short-description>.md`. AI-first format.
-5. Append one timestamped entry to `<vault>/log.md` summarizing what changed: `## [YYYY-MM-DD] vault-sync | <slug> - <one-line summary>`.
-6. Update `<vault>/index.md` if you created a new note: add the entry under its folder section, format `- [[Note Name]] - brief description`.
-7. Report back: a clean list of vault writes performed (created vs updated, file paths).
-
-Never delete vault content. Never modify `raw/`, `Templates/`, `_export/`, or `.obsidian/`. Match the vault's voice per its `_CLAUDE.md` (terse, bullet-first, NO em dashes).
 ```
 
 ### 1.8 Write `CLAUDE.md` and `AGENTS.md` (initial skeleton)
@@ -621,73 +584,6 @@ TBD - filled in by Phase 3.
 TBD - filled in by Phase 3.
 ````
 
-### 1.8.1 If vault detected, append a `Vault integration` section to `CLAUDE.md`
-
-If step 1.0 found an Obsidian vault, insert the following section into `CLAUDE.md` between the **Commit and PR hygiene** subsection and the **Project-specific section** marker. Replace `<VAULT_PATH>` with the absolute path captured in 1.0. Mirror the same edit into `AGENTS.md`. If no vault was detected, skip this step entirely.
-
-`````markdown
-## Vault integration (Obsidian second brain)
-
-> This section is only present because an Obsidian vault was detected when this project was bootstrapped. The path below was captured at that time. If the vault moves, edit this section. To disable the integration entirely, delete this section.
-
-This project shares context with the user's Obsidian vault at:
-
-```
-<VAULT_PATH>
-```
-
-The vault is the **cross-project summary layer**. This repo remains the source of truth for code, plans, learnings, and rules. The vault is the source of truth for: people, decisions that span more than one project, reusable library entries, daily flow, weekly reviews.
-
-### Read order at session start (when vault is reachable)
-
-1. This file in full.
-2. `.docs/rules/` and the three most recent `.docs/learnings/` (per the read-first rule above).
-3. `<VAULT_PATH>/_CLAUDE.md` (vault operating manual; defines folder layout, AI-first rule, naming, voice). Its rules win over this section if they conflict.
-4. `<VAULT_PATH>/Projects/<this-project>.md` if it exists (the vault's running summary of this project).
-
-If the vault path does not resolve (different machine, env var unset, vault moved), skip the vault-side reads silently. The project still works standalone.
-
-### When to propagate from project to vault
-
-| Project event | Vault write |
-|---|---|
-| Substantive dev session ends | `Dev Logs/YYYY-MM-DD - <slug> - <description>.md` (AI-first format) |
-| Project bootstrapped or registered | `Projects/<slug>.md` (status, stack, repo path, active threads) |
-| Status / stack / active-thread change | Update `Projects/<slug>.md` |
-| Decision with cross-project impact | Append to `Projects/<slug>.md` § Key Decisions |
-| New person mentioned | `People/<Full Name>.md` (stub if missing) |
-| Reusable component or pattern stashed | `Library/<Name>.md` (rich frontmatter per the vault's Library schema) |
-| Any vault write | One entry in `log.md` + update `index.md` if a new note was created |
-
-Use the `/vault-sync` slash command for a guided push of project state at session end.
-
-### What NOT to propagate
-
-- Code, build artifacts, lockfiles, env files, secrets
-- Granular in-progress plans (those stay in `.docs/plans/`)
-- Per-task learnings (those stay in `.docs/learnings/`) unless the lesson crosses project boundaries
-- Anything inside the vault's `raw/`, `Templates/`, `_export/`, or `.obsidian/`
-
-### Voice and format for vault writes
-
-- Match the vault's `_CLAUDE.md` rules exactly. They override this section.
-- NO em dashes anywhere. Use regular hyphens, commas, periods, semicolons, parentheses.
-- AI-first: every vault note has frontmatter (`date`, `type`, `tags`, `ai-first: true`) and a `## For future Claude` preamble (2-3 sentences explaining the note so future-Claude can decide relevance in 10 seconds).
-- Cross-link with `[[wikilinks]]` for every person, project, decision, or library entry referenced.
-- Sources verbatim with URLs inline. Recency markers per external claim.
-
-### Reviewer and learner behavior
-
-- `reviewer`: do not block on vault propagation. The vault is the optional summary layer; missing vault writes are a `note` finding, never a blocker.
-- `learner`: if a captured lesson crosses project boundaries (a constraint that applies elsewhere, a person worth remembering, a reusable component, a tool worth stashing), also append a brief note to the appropriate vault folder using the vault's voice. Per-project lessons stay in `.docs/learnings/` only.
-
-### Conflict resolution
-
-- The vault's `_CLAUDE.md` wins on vault-side conventions (folder names, frontmatter schema, voice).
-- This file wins on project-side conventions (`.docs/` structure, plan format, agent routing).
-- If both files disagree on something that affects both sides (e.g. commit attribution), the project's `CLAUDE.md` wins for git operations; the vault's `_CLAUDE.md` wins for vault writes.
-`````
-
 ### 1.9 Nano Banana check (image generation)
 
 If the `cc-nano-banana` skill is available in this environment (check the available skills list in your system context), add a section to `CLAUDE.md` titled `### Image generation` that says:
@@ -742,8 +638,6 @@ Print a concise summary of what was created or modified, grouped by:
 - **Created** (new files)
 - **Modified** (existing files updated)
 - **Skipped** (existing files left untouched)
-
-If an Obsidian vault was detected in step 1.0, also include a **Vault integration** line stating the vault path, that `CLAUDE.md` has a `Vault integration` section, and that `/vault-sync` is available for pushing project state to the vault. If no vault was detected, do not mention the vault at all. The user does not need to know about an integration they did not opt into.
 
 End with one sentence telling the user that `/learn` is available for capturing lessons, and that the agents will run automatically when invoked by name or by routing heuristic.
 
