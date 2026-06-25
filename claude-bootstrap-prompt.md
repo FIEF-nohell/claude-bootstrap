@@ -4,9 +4,11 @@ You are bootstrapping the Claude Code environment for the project at the current
 
 ## What this prompt does
 
-This prompt sets up the Claude Code environment: git hygiene, permissions, a `.docs/` knowledge base, a set of subagents, slash commands, and the `CLAUDE.md` / `AGENTS.md` routing files. It does **not** build an application. There is no "build this app" section. You drive feature work yourself in later sessions, against the machinery this bootstrap installs.
+This prompt sets up the Claude Code environment: git hygiene, permissions, a `.docs/` knowledge base, a set of subagents, slash commands, and the project instructions. It does **not** build an application. There is no "build this app" section. You drive feature work yourself in later sessions, against the machinery this bootstrap installs.
 
-**This bootstrap is `nohell v7`.** Treat that exact string as the current version throughout this prompt. It gets stamped into the generated `CLAUDE.md` as a `Bootstrapped by nohell v7` marker, so any future run can tell which version last touched this repo and migrate accordingly (see step 1.0.5). Whenever this prompt is revised to a new version, that version number must be bumped here, in the step 1.8 marker line, and in the migration logic in step 1.0.5.
+**`AGENTS.md` is the single source of truth for project instructions.** It holds the full routing index, rules, agent table, and project-specific section. `CLAUDE.md` is a thin pointer that tells Claude Code to read `AGENTS.md`. This avoids maintaining two full copies in sync: edits land in `AGENTS.md` only, and the `CLAUDE.md` stub never needs content updates.
+
+**This bootstrap is `nohell v7`.** Treat that exact string as the current version throughout this prompt. It gets stamped into the generated `AGENTS.md` (and the `CLAUDE.md` pointer stub) as a `Bootstrapped by nohell v7` marker, so any future run can tell which version last touched this repo and migrate accordingly (see step 1.0.5). Whenever this prompt is revised to a new version, that version number must be bumped here, in the step 1.8 marker line, and in the migration logic in step 1.0.5.
 
 The bootstrap runs in one of two modes, which you detect automatically in step 1.0:
 
@@ -17,7 +19,7 @@ Execute in this order:
 
 1. **Phase 1: Infrastructure setup.** Always runs, both modes.
 2. **Phase 2: Context gathering and tailored agents.** Mode B only. Skipped entirely in Mode A.
-3. **Phase 3: Documentation finalization.** Always runs. Fills `CLAUDE.md` / `AGENTS.md` with what actually exists.
+3. **Phase 3: Documentation finalization.** Always runs. Fills `AGENTS.md` with what actually exists (the `CLAUDE.md` pointer stays a stub).
 
 Do not skip phases. Do not reorder phases. Do not announce each phase to the user with a wall of text. Brief progress updates only.
 
@@ -47,7 +49,7 @@ If it is genuinely ambiguous (a tiny amount of source, a single stub file), trea
 This repo may have been bootstrapped before, by this version or an older one. The whole of Phase 1 is additive (it only creates what is missing and never clobbers user content), so re-running is safe. This step handles the two things "additive only" does not cover: removing artifacts that older versions installed but this version no longer wants, and recording the version.
 
 **Detect a prior bootstrap.** Look for any of:
-- A `Bootstrapped by nohell v<N>` marker line in `CLAUDE.md`.
+- A `Bootstrapped by nohell v<N>` marker line in `AGENTS.md` or `CLAUDE.md`.
 - `.claude/agents/planner.md` together with a `.docs/` directory (a bootstrap ran before the marker existed, i.e. v6 or earlier).
 
 If none of these are present, this is a fresh bootstrap: skip the rest of 1.0.5 and continue at 1.1. The marker gets written in step 1.8.
@@ -195,7 +197,7 @@ Create these folders and put a small `README.md` in each describing what belongs
 .docs/
 ├── plans/        # Implementation plans, one file per task. Format: YYYY-MM-DD-<slug>.md
 ├── learnings/    # Append-only lessons. Format: YYYY-MM-DD-<slug>.md with frontmatter
-├── rules/        # Hard rules too granular for CLAUDE.md. Each file is one rule or one rule cluster
+├── rules/        # Hard rules too granular for AGENTS.md. Each file is one rule or one rule cluster
 └── research/     # Findings from the researcher agent. Format: YYYY-MM-DD-<slug>.md
 ```
 
@@ -264,9 +266,10 @@ Also seed `.docs/rules/agent-docs-sync.md` with this exact content (skip if it e
 
 Whenever a file in `.claude/agents/` is added, removed, renamed, or changed in a way that affects its `description`, `tools`, `model`, or core behavior, the following MUST be updated in the same change:
 
-1. The **Available agents** table in `CLAUDE.md`.
-2. The **Routing heuristics** subsection in `CLAUDE.md`.
-3. `AGENTS.md` (full mirror of `CLAUDE.md`).
+1. The **Available agents** table in `AGENTS.md`.
+2. The **Routing heuristics** subsection in `AGENTS.md`.
+
+`AGENTS.md` is the single source of truth; `CLAUDE.md` is only a pointer to it and needs no update.
 
 ## Why
 The table and routing heuristics are how agents (and humans) decide which subagent to invoke. If the docs lag the actual agent files, callers route to stale behavior, the wrong agent gets used, or a new agent goes unused entirely. Self-improvement breaks down when the index is wrong.
@@ -295,7 +298,7 @@ model: sonnet
 You are the planner. Your only job is to produce a written implementation plan before code gets touched.
 
 ## Process
-1. Read CLAUDE.md, then read every file in .docs/rules/ and the three most recent files in .docs/learnings/. These are non-negotiable inputs. The rule `.docs/rules/plan-execution.md` defines the exact plan format - follow it.
+1. Read AGENTS.md (the project instructions; CLAUDE.md just points to it), then read every file in .docs/rules/ and the three most recent files in .docs/learnings/. These are non-negotiable inputs. The rule `.docs/rules/plan-execution.md` defines the exact plan format - follow it.
 2. Read the relevant existing code (Grep + Read). Do not skim. If the task touches a file, you have read that file.
 3. Identify the smallest viable change set. List affected files with one-line descriptions of what changes in each.
 4. Call out unknowns explicitly. If you are guessing, say so.
@@ -341,7 +344,7 @@ You are the implementer. Your job is to execute a plan that already exists.
 
 ## Process
 1. Read the plan you have been given (path to file in .docs/plans/). Confirm `status: in-progress` in frontmatter.
-2. Read CLAUDE.md and every file in .docs/rules/, especially `.docs/rules/plan-execution.md`.
+2. Read AGENTS.md (the project instructions; CLAUDE.md just points to it) and every file in .docs/rules/, especially `.docs/rules/plan-execution.md`.
 3. Find the first unchecked `- [ ]` task in the first milestone that has any. That is your current task.
 4. Execute that task. After finishing it:
    - Flip `- [ ]` to `- [x]` in the plan file. Do this BEFORE starting the next task, not at the end of the session.
@@ -450,7 +453,7 @@ You are the debugger. Your job is to find root causes, not patch symptoms.
 ```markdown
 ---
 name: learner
-description: Use after a meaningful task ends, after a bug fix, after a user correction, or via /learn. Reads recent context, distills lessons, appends to .docs/learnings/, and edits agent files or CLAUDE.md if the lesson reveals a flaw. Has permission to edit its own and other agent files without prompts.
+description: Use after a meaningful task ends, after a bug fix, after a user correction, or via /learn. Reads recent context, distills lessons, appends to .docs/learnings/, and edits agent files or AGENTS.md if the lesson reveals a flaw. Has permission to edit its own and other agent files without prompts.
 tools: Read, Edit, Write, Grep, Glob
 model: opus
 ---
@@ -474,18 +477,17 @@ You are the learner. Your job is to make sure the project gets smarter over time
 5. **Promote to a rule** if the lesson is non-negotiable going forward. Write to `.docs/rules/<short-name>.md`. Rules are short, imperative, and stand alone.
 6. **Edit agent files directly** if a learning reveals an instruction flaw (e.g. "the reviewer keeps missing X" means reviewer.md needs a new rule). The .claude/settings.json permissions allow this without prompts. Make the edit, do not ask.
 7. **Sync agent documentation.** Any time you add a new agent, remove an agent, or change an agent's `description` field, `tools`, `model`, or core behavior, you MUST also update:
-   - The **Available agents** table in `CLAUDE.md`
-   - The **Routing heuristics** subsection in `CLAUDE.md`
-   - `AGENTS.md` (mirror of `CLAUDE.md`)
-   This is not optional. An agent change without a doc update is an incomplete change. Verify the table row and routing line for that agent are present and accurate before you finish.
-8. **Update CLAUDE.md** if other routing or conventions need to change beyond agents.
+   - The **Available agents** table in `AGENTS.md`
+   - The **Routing heuristics** subsection in `AGENTS.md`
+   `AGENTS.md` is the single source of truth; `CLAUDE.md` is only a pointer to it and needs no update. This is not optional. An agent change without a doc update is an incomplete change. Verify the table row and routing line for that agent are present and accurate before you finish.
+8. **Update AGENTS.md** if other routing or conventions need to change beyond agents.
 
 ## Hard rules
 - Quality over quantity. Zero learnings from a session is a fine outcome.
 - Never duplicate an existing learning. If a similar one exists, update it instead of adding a new one.
-- When you edit an agent file or CLAUDE.md, leave a one-line note at the top of your written learning naming what you changed.
+- When you edit an agent file or AGENTS.md, leave a one-line note at the top of your written learning naming what you changed.
 - Be specific. "Be careful with state" is not a learning. "useEffect with an array dependency that contains an object identity will fire every render" is a learning.
-- Agent files and their documentation in CLAUDE.md/AGENTS.md must always be in sync. If you find them out of sync, fix it before doing anything else.
+- Agent files and their documentation in `AGENTS.md` must always be in sync. If you find them out of sync, fix it before doing anything else.
 ```
 
 ### 1.7 Create slash commands
@@ -497,31 +499,43 @@ Write `.claude/commands/learn.md`. Skip if it exists.
 description: Invoke the learner agent to distill lessons from the recent session into .docs/learnings/
 ---
 
-Invoke the learner subagent now. Have it reflect on the recent session, distill any genuine lessons, and append them to `.docs/learnings/`. If the learner identifies flaws in any agent file or in CLAUDE.md, it should fix them directly without asking.
+Invoke the learner subagent now. Have it reflect on the recent session, distill any genuine lessons, and append them to `.docs/learnings/`. If the learner identifies flaws in any agent file or in AGENTS.md, it should fix them directly without asking.
 ```
 
-### 1.8 Write `CLAUDE.md` and `AGENTS.md` (initial skeleton)
+### 1.8 Write `AGENTS.md` (canonical) and the `CLAUDE.md` pointer
 
-Write the **initial skeleton** version of `CLAUDE.md` now. Phase 3 will fill in the project-specific bits at the end. If `CLAUDE.md` already exists, do not overwrite it. Instead, merge in any sections from the skeleton that are missing (the **Session start protocol** section in particular must end up present, since older bootstraps did not have it).
+`AGENTS.md` holds the real instructions. `CLAUDE.md` is a thin stub that points Claude Code at `AGENTS.md`. Write both now. Phase 3 fills in the project-specific bits of `AGENTS.md` at the end.
 
-**Version marker.** The skeleton carries a `> Bootstrapped by nohell v7` line directly under the H1 title. When creating `CLAUDE.md`, include it as shown. When merging into an existing `CLAUDE.md`: if a `> Bootstrapped by nohell v<N>` line already exists, rewrite it to `v7`; if none exists, insert it directly under the H1 title. There must be exactly one such line.
+**Write `AGENTS.md`** using the skeleton below. If `AGENTS.md` already exists, do not overwrite it; merge in any sections from the skeleton that are missing (the **Session start protocol** section in particular must end up present, since older bootstraps did not have it).
 
-After writing `CLAUDE.md`, write `AGENTS.md` with **identical content** (marker line included) so non-Claude tools (Cursor, Codex, etc.) read the same instructions. They are kept in sync by the learner.
+**Write the `CLAUDE.md` pointer stub** with the exact content shown below. If `CLAUDE.md` already exists and is a full instructions file from an older bootstrap (it contains the routing index rather than a pointer), do not silently overwrite it: its real content belongs in `AGENTS.md`. Merge anything `AGENTS.md` is missing into `AGENTS.md` first, then replace `CLAUDE.md` with the stub. If `CLAUDE.md` is already the stub, leave it.
 
-#### `CLAUDE.md` skeleton
+**Version marker.** Both files carry a `> Bootstrapped by nohell v7` line directly under the H1 title. When creating them, include it as shown. When updating existing files: if a `> Bootstrapped by nohell v<N>` line already exists, rewrite it to `v7`; if none exists, insert it directly under the H1 title. Exactly one such line per file.
+
+#### `CLAUDE.md` pointer stub
+
+```markdown
+# Project Instructions for AI Agents
+
+> Bootstrapped by nohell v7
+
+All instructions for AI agents working in this repo live in `AGENTS.md`. Read `AGENTS.md` in full, first, before doing anything else, every session. This file is intentionally a pointer only; do not duplicate content here. Edits to project instructions go in `AGENTS.md`.
+```
+
+#### `AGENTS.md` skeleton
 
 ````markdown
 # Project Instructions for AI Agents
 
 > Bootstrapped by nohell v7
 
-This file is the routing index for any AI agent working in this repo. Read it first, every session, before doing anything else. `AGENTS.md` is a mirror of this file for non-Claude tools.
+This file (`AGENTS.md`) is the routing index for any AI agent working in this repo, and the single source of truth for project instructions. Read it first, every session, before doing anything else. `CLAUDE.md` is a thin pointer to this file so Claude Code loads it; all real content lives here.
 
 ## Session start protocol
 
 All relevant docs live in `.docs/`. At the start of every fresh session, before doing any work, you bring yourself up to speed on your own:
 
-1. Read this file (`CLAUDE.md`) in full.
+1. Read this file (`AGENTS.md`) in full.
 2. Read every file in `.docs/rules/` (hard rules, non-negotiable).
 3. Read the three most recent files in `.docs/learnings/` (lessons from past mistakes, do not repeat them).
 4. Run the resume check: glob `.docs/plans/*.md` and look for any plan with `status: in-progress` (see Resume protocol below).
@@ -584,7 +598,7 @@ Anything markdown that is not user-facing documentation goes in `.docs/`. User-f
 | `reviewer` | After implementer finishes | Structured review with severity findings |
 | `researcher` | When you need codebase or external context | `.docs/research/YYYY-MM-DD-<slug>.md` |
 | `debugger` | When something is broken and root cause is unclear | Root cause analysis + proposed fix |
-| `learner` | After a meaningful task, OR via `/learn` | New entries in `.docs/learnings/`, edits to agents or CLAUDE.md |
+| `learner` | After a meaningful task, OR via `/learn` | New entries in `.docs/learnings/`, edits to agents or AGENTS.md |
 
 <!-- Project-tailored agents (added by Phase 2 for existing repos) are appended to this table. -->
 
@@ -607,7 +621,7 @@ After completing any non-trivial task, invoke the `learner` subagent. Non-trivia
 - Cost time on a wrong turn
 - Was corrected by the user
 
-The learner has permission to edit `.claude/agents/**`, `.docs/**`, and `CLAUDE.md` without asking. Let it.
+The learner has permission to edit `.claude/agents/**`, `.docs/**`, and `AGENTS.md` without asking. Let it.
 
 If you finish a task and decide it does not warrant invoking the learner, that is fine, but the default is to invoke it.
 
@@ -626,9 +640,8 @@ If you add, remove, rename, or change the behavior of any file in `.claude/agent
 
 1. The **Available agents** table above (add/remove/edit the row).
 2. The **Routing heuristics** subsection above (add/remove/edit the line that mentions the agent).
-3. `AGENTS.md` (full mirror of this file).
 
-A change to an agent file without a corresponding doc update is an incomplete change. Reviewer agent: flag this as a **blocker** finding if you ever see it. Learner agent: if you find them out of sync from a past session, fix it as your first action.
+This file (`AGENTS.md`) is the single source of truth; `CLAUDE.md` is only a pointer and needs no update. A change to an agent file without a corresponding doc update is an incomplete change. Reviewer agent: flag this as a **blocker** finding if you ever see it. Learner agent: if you find them out of sync from a past session, fix it as your first action.
 
 This rule applies to any agent that edits `.claude/agents/` (including the learner editing itself).
 
@@ -656,7 +669,7 @@ TBD - filled in by Phase 3.
 
 ### 1.9 Nano Banana check (image generation)
 
-If the `cc-nano-banana` skill is available in this environment (check the available skills list in your system context), add a section to `CLAUDE.md` titled `### Image generation` that says:
+If the `cc-nano-banana` skill is available in this environment (check the available skills list in your system context), add a section to `AGENTS.md` titled `### Image generation` that says:
 
 > For any image generation or editing task, use the `cc-nano-banana` skill. Default output location for this project's generated images is `assets/images/` (or the closest equivalent in this project). Source originals are saved to `C:\Users\noelh\Pictures\AI\` per user global config.
 
@@ -710,17 +723,16 @@ Keep the tailored set small and high-value. Two to four well-targeted agents bea
 
 For every tailored agent you created, update (per the `agent-docs-sync` rule):
 
-1. The **Available agents** table in `CLAUDE.md` (add a row).
-2. The **Routing heuristics** subsection in `CLAUDE.md` (add a line describing when to route to it).
-3. `AGENTS.md` (mirror the same edits).
+1. The **Available agents** table in `AGENTS.md` (add a row).
+2. The **Routing heuristics** subsection in `AGENTS.md` (add a line describing when to route to it).
 
-Do this now, in Phase 2, so the index is correct before Phase 3 finalizes the docs.
+`AGENTS.md` is the single source of truth; the `CLAUDE.md` pointer needs no update. Do this now, in Phase 2, so the index is correct before Phase 3 finalizes the docs.
 
 ---
 
 ## Phase 3: Documentation finalization
 
-After Phase 2 completes (or immediately, if Phase 2 was skipped in Mode A), update `CLAUDE.md` and `AGENTS.md` to reflect the actual state of the project.
+After Phase 2 completes (or immediately, if Phase 2 was skipped in Mode A), update `AGENTS.md` to reflect the actual state of the project. The `CLAUDE.md` pointer needs no content changes.
 
 ### 3.1 Detect what exists
 
@@ -732,7 +744,7 @@ Read the project tree. Identify:
 
 In Mode A (greenfield) most of this will be empty. That is expected. Do not invent a stack the user has not chosen.
 
-### 3.2 Fill in the project-specific section of `CLAUDE.md`
+### 3.2 Fill in the project-specific section of `AGENTS.md`
 
 Replace the `TBD` placeholders in the **Project-specific section** with concrete content:
 
@@ -742,9 +754,9 @@ Replace the `TBD` placeholders in the **Project-specific section** with concrete
 
 Keep it factual. Do not pad. If you cannot determine something, write `unknown` rather than guessing. In Mode A, it is fine for these to stay mostly `TBD` / `unknown` until the user starts building; say so explicitly rather than inventing.
 
-### 3.3 Mirror to `AGENTS.md`
+### 3.3 Verify the `CLAUDE.md` pointer
 
-After updating `CLAUDE.md`, write the same content to `AGENTS.md`. They are kept in sync by the learner going forward.
+There is no mirroring step anymore: `AGENTS.md` is the single source of truth. Just confirm `CLAUDE.md` is the thin pointer stub (points to `AGENTS.md`, carries the version marker, holds no duplicated instructions). If an older bootstrap left a full instructions file in `CLAUDE.md`, ensure its content has been folded into `AGENTS.md`, then reduce `CLAUDE.md` to the stub.
 
 ### 3.4 Final summary to user
 
