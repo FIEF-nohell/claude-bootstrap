@@ -6,8 +6,6 @@ You are bootstrapping the Claude Code environment for the project at the current
 
 This prompt sets up the Claude Code environment: git hygiene, permissions, a `.docs/` knowledge base, a set of subagents, slash commands, and the `CLAUDE.md` / `AGENTS.md` routing files. It does **not** build an application. There is no "build this app" section. You drive feature work yourself in later sessions, against the machinery this bootstrap installs.
 
-**This bootstrap is `nohell v7`.** Treat that exact string as the current version throughout this prompt. It gets stamped into the generated `CLAUDE.md` as a `Bootstrapped by nohell v7` marker, so any future run can tell which version last touched this repo and migrate accordingly (see step 1.0.5). Whenever this prompt is revised to a new version, that version number must be bumped here, in the step 1.8 marker line, and in the migration logic in step 1.0.5.
-
 The bootstrap runs in one of two modes, which you detect automatically in step 1.0:
 
 - **Mode A - Greenfield.** The directory is empty or barely set up (no real source yet). Install the machinery, write skeleton docs, stop. Do not ask the user questions. Do not scaffold any code. End at "Ready to work."
@@ -41,29 +39,6 @@ Classify:
 - **Mode B (existing repo)** if there is real source: application code, a `package.json` with dependencies, framework config, a test suite, etc.
 
 If it is genuinely ambiguous (a tiny amount of source, a single stub file), treat it as **Mode A** and let the user grow it. Do not interrogate the user to decide the mode; decide from what is on disk.
-
-### 1.0.5 Migrate a prior bootstrap (idempotent re-runs)
-
-This repo may have been bootstrapped before, by this version or an older one. The whole of Phase 1 is additive (it only creates what is missing and never clobbers user content), so re-running is safe. This step handles the two things "additive only" does not cover: removing artifacts that older versions installed but this version no longer wants, and recording the version.
-
-**Detect a prior bootstrap.** Look for any of:
-- A `Bootstrapped by nohell v<N>` marker line in `CLAUDE.md`.
-- `.claude/agents/planner.md` together with a `.docs/` directory (a bootstrap ran before the marker existed, i.e. v6 or earlier).
-
-If none of these are present, this is a fresh bootstrap: skip the rest of 1.0.5 and continue at 1.1. The marker gets written in step 1.8.
-
-**If a prior bootstrap is detected**, determine the prior version from the marker (`vN`), or treat it as "pre-marker (v6 or earlier)" if there is no marker. Then:
-
-1. **Remove Obsidian leftovers (present in v5 and earlier).** These versions installed an optional Obsidian vault integration that v7 has dropped entirely. Detect any of:
-   - `.claude/commands/vault-sync.md`
-   - A `## Vault integration` section (and its subsections) in `CLAUDE.md` and in `AGENTS.md`
-   - Any `OBSIDIAN_VAULT_PATH` reference or vault read-order lines inside `CLAUDE.md` / `AGENTS.md`
-
-   If any exist, list them to the user and **ask for confirmation before deleting**. This is the only destructive part of the bootstrap. On confirmation, delete `vault-sync.md` and excise the vault sections from `CLAUDE.md` and `AGENTS.md`, leaving the rest of those files untouched. Only ever touch files inside this repo; never follow a vault path to delete anything outside it. If the user declines, leave everything in place and note it in the final summary.
-
-2. **Record what you migrated** so the Phase 3 summary can report it (prior version, what was removed, what was kept).
-
-The version marker itself is brought up to date in step 1.8 (it rewrites an old `Bootstrapped by nohell v<N>` line to the current version, or adds one if missing).
 
 ### 1.1 Detect state
 
@@ -502,18 +477,14 @@ Invoke the learner subagent now. Have it reflect on the recent session, distill 
 
 ### 1.8 Write `CLAUDE.md` and `AGENTS.md` (initial skeleton)
 
-Write the **initial skeleton** version of `CLAUDE.md` now. Phase 3 will fill in the project-specific bits at the end. If `CLAUDE.md` already exists, do not overwrite it. Instead, merge in any sections from the skeleton that are missing (the **Session start protocol** section in particular must end up present, since older bootstraps did not have it).
+Write the **initial skeleton** version of `CLAUDE.md` now. Phase 3 will fill in the project-specific bits at the end. If `CLAUDE.md` already exists, do not overwrite it. Instead, merge in any sections from the skeleton that are missing.
 
-**Version marker.** The skeleton carries a `> Bootstrapped by nohell v7` line directly under the H1 title. When creating `CLAUDE.md`, include it as shown. When merging into an existing `CLAUDE.md`: if a `> Bootstrapped by nohell v<N>` line already exists, rewrite it to `v7`; if none exists, insert it directly under the H1 title. There must be exactly one such line.
-
-After writing `CLAUDE.md`, write `AGENTS.md` with **identical content** (marker line included) so non-Claude tools (Cursor, Codex, etc.) read the same instructions. They are kept in sync by the learner.
+After writing `CLAUDE.md`, write `AGENTS.md` with **identical content** so non-Claude tools (Cursor, Codex, etc.) read the same instructions. They are kept in sync by the learner.
 
 #### `CLAUDE.md` skeleton
 
 ````markdown
 # Project Instructions for AI Agents
-
-> Bootstrapped by nohell v7
 
 This file is the routing index for any AI agent working in this repo. Read it first, every session, before doing anything else. `AGENTS.md` is a mirror of this file for non-Claude tools.
 
@@ -682,13 +653,9 @@ Study the repository until you can describe it accurately:
 
 Use the `researcher` agent for any deep dive that would otherwise flood the main context. Write a context summary to `.docs/research/YYYY-MM-DD-bootstrap-context.md` so future sessions inherit it (Question: "What is this project and how is it built?"; Short answer; Evidence with file paths; Open questions).
 
-If a prior bootstrap already left a `*bootstrap-context*.md` note in `.docs/research/`, do not write a second dated duplicate. Read it, then update it in place (refresh stale facts, append what changed), keeping its existing filename.
-
 ### 2.2 Generate project-tailored agents
 
 Based on what you found, write **additional** agents to `.claude/agents/` that fit this specific project. These sit alongside the six core agents (do not modify or replace the core six). Only create an agent that earns its place: it must encode project-specific knowledge or a recurring task that the generic core agents would handle worse.
-
-On a re-bootstrap, first read what is already in `.claude/agents/`. Skip any tailored agent whose responsibility is already covered by an existing agent (core or previously generated); do not create a near-duplicate under a new name. Only add genuinely new coverage, and update the docs in 2.3 to match the full current set.
 
 Examples of good tailored agents, by project type:
 
@@ -753,8 +720,6 @@ Print a concise summary of what was created or modified, grouped by:
 - **Modified** (existing files updated)
 - **Skipped** (existing files left untouched)
 
-State which mode ran (A greenfield or B existing repo) and that this repo is now marked `Bootstrapped by nohell v7`. In Mode B, list the project-tailored agents you generated and one line each on what they do. In Mode A, state that no context-gathering or tailored agents ran because the project is greenfield, and that they will be worth revisiting once there is a real codebase.
-
-If step 1.0.5 ran (a prior bootstrap was detected), add a **Migration** line: the prior version detected, what was removed (e.g. Obsidian `vault-sync.md` and the `Vault integration` section), or that the user declined removal and the artifacts remain.
+State which mode ran (A greenfield or B existing repo). In Mode B, list the project-tailored agents you generated and one line each on what they do. In Mode A, state that no context-gathering or tailored agents ran because the project is greenfield, and that they will be worth revisiting once there is a real codebase.
 
 End with one sentence telling the user that `/learn` is available for capturing lessons, that the agents will run automatically when invoked by name or by routing heuristic, and that future sessions follow the session-start handshake (greet -> `Session started` -> read context -> `Ready to work.`).

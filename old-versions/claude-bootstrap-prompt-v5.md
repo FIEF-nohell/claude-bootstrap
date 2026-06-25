@@ -2,22 +2,18 @@
 
 You are bootstrapping the Claude Code environment for the project at the current working directory. Read this entire prompt before taking any action.
 
-## What this prompt does
+## How to read this prompt
 
-This prompt sets up the Claude Code environment: git hygiene, permissions, a `.docs/` knowledge base, a set of subagents, slash commands, and the `CLAUDE.md` / `AGENTS.md` routing files. It does **not** build an application. There is no "build this app" section. You drive feature work yourself in later sessions, against the machinery this bootstrap installs.
+This prompt has two halves:
 
-**This bootstrap is `nohell v7`.** Treat that exact string as the current version throughout this prompt. It gets stamped into the generated `CLAUDE.md` as a `Bootstrapped by nohell v7` marker, so any future run can tell which version last touched this repo and migrate accordingly (see step 1.0.5). Whenever this prompt is revised to a new version, that version number must be bumped here, in the step 1.8 marker line, and in the migration logic in step 1.0.5.
-
-The bootstrap runs in one of two modes, which you detect automatically in step 1.0:
-
-- **Mode A - Greenfield.** The directory is empty or barely set up (no real source yet). Install the machinery, write skeleton docs, stop. Do not ask the user questions. Do not scaffold any code. End at "Ready to work."
-- **Mode B - Existing repo.** The directory already contains a real project. Install the machinery, then gather context on the codebase on your own and generate project-tailored agents on top of the core set. End at "Ready to work."
+1. **Bootstrap instructions** (everything above the `## PROJECT BUILD INSTRUCTIONS` marker). These set up the Claude environment.
+2. **Project build instructions** (everything below that marker, if present). These describe what to build. May be empty if the user only wants the environment set up.
 
 Execute in this order:
 
-1. **Phase 1: Infrastructure setup.** Always runs, both modes.
-2. **Phase 2: Context gathering and tailored agents.** Mode B only. Skipped entirely in Mode A.
-3. **Phase 3: Documentation finalization.** Always runs. Fills `CLAUDE.md` / `AGENTS.md` with what actually exists.
+1. **Infrastructure setup** (Phase 1 below). Always runs.
+2. **Project build** (Phase 2). Only runs if the build section is non-empty. Once Phase 1 is done, treat the build instructions as a normal task and use the agents/conventions you just installed.
+3. **Documentation finalization** (Phase 3). Always runs at the end. Updates `CLAUDE.md` and `AGENTS.md` to reflect what actually exists in the project now.
 
 Do not skip phases. Do not reorder phases. Do not announce each phase to the user with a wall of text. Brief progress updates only.
 
@@ -25,45 +21,20 @@ Do not skip phases. Do not reorder phases. Do not announce each phase to the use
 
 ## Phase 1: Infrastructure setup
 
-### 1.0 Detect project mode (greenfield vs existing)
+### 1.0 Detect Obsidian vault (optional integration)
 
-Decide whether this is **Mode A (greenfield)** or **Mode B (existing repo)** before doing anything else. Record the outcome internally; it controls whether Phase 2 runs.
+This bootstrap integrates with the user's Obsidian "second brain" vault if one is configured. The vault is a cross-project summary layer; this project remains the source of truth for code. The integration is fully optional. If no vault is present, every later step that mentions the vault is a silent no-op.
 
-Inspect the working directory:
+Detect in this order:
+1. Read `$env:OBSIDIAN_VAULT_PATH` (PowerShell) or `$OBSIDIAN_VAULT_PATH` (bash).
+2. If unset, read `~/.claude/settings.json` and look for `env.OBSIDIAN_VAULT_PATH`.
+3. If a path is found, verify the directory exists and contains `_CLAUDE.md` at its root.
 
-- List the tree, ignoring `.git/`, `node_modules/`, and other dependency or build directories.
-- Count meaningful source files (code, not config or docs).
-- Check for a populated `package.json` (real dependencies or scripts), a `src/`/`app/`/`lib` tree, or any other sign of an actual codebase.
+Record the outcome internally for the rest of Phase 1:
+- **Vault present**: the path resolves to a directory and `_CLAUDE.md` exists there. Continue with vault-aware behavior in steps 1.7, 1.8.1, and Phase 3.
+- **Vault absent**: env var missing, path does not exist, or no `_CLAUDE.md` at its root. Skip every "if vault present" branch below. The bootstrap still completes; the project is standalone.
 
-Classify:
-
-- **Mode A (greenfield)** if the directory is empty, or contains only scaffolding noise: a `README`, a `LICENSE`, a `.gitignore`, an empty or dependency-less `package.json`, editor dotfiles. Nothing that constitutes a real codebase.
-- **Mode B (existing repo)** if there is real source: application code, a `package.json` with dependencies, framework config, a test suite, etc.
-
-If it is genuinely ambiguous (a tiny amount of source, a single stub file), treat it as **Mode A** and let the user grow it. Do not interrogate the user to decide the mode; decide from what is on disk.
-
-### 1.0.5 Migrate a prior bootstrap (idempotent re-runs)
-
-This repo may have been bootstrapped before, by this version or an older one. The whole of Phase 1 is additive (it only creates what is missing and never clobbers user content), so re-running is safe. This step handles the two things "additive only" does not cover: removing artifacts that older versions installed but this version no longer wants, and recording the version.
-
-**Detect a prior bootstrap.** Look for any of:
-- A `Bootstrapped by nohell v<N>` marker line in `CLAUDE.md`.
-- `.claude/agents/planner.md` together with a `.docs/` directory (a bootstrap ran before the marker existed, i.e. v6 or earlier).
-
-If none of these are present, this is a fresh bootstrap: skip the rest of 1.0.5 and continue at 1.1. The marker gets written in step 1.8.
-
-**If a prior bootstrap is detected**, determine the prior version from the marker (`vN`), or treat it as "pre-marker (v6 or earlier)" if there is no marker. Then:
-
-1. **Remove Obsidian leftovers (present in v5 and earlier).** These versions installed an optional Obsidian vault integration that v7 has dropped entirely. Detect any of:
-   - `.claude/commands/vault-sync.md`
-   - A `## Vault integration` section (and its subsections) in `CLAUDE.md` and in `AGENTS.md`
-   - Any `OBSIDIAN_VAULT_PATH` reference or vault read-order lines inside `CLAUDE.md` / `AGENTS.md`
-
-   If any exist, list them to the user and **ask for confirmation before deleting**. This is the only destructive part of the bootstrap. On confirmation, delete `vault-sync.md` and excise the vault sections from `CLAUDE.md` and `AGENTS.md`, leaving the rest of those files untouched. Only ever touch files inside this repo; never follow a vault path to delete anything outside it. If the user declines, leave everything in place and note it in the final summary.
-
-2. **Record what you migrated** so the Phase 3 summary can report it (prior version, what was removed, what was kept).
-
-The version marker itself is brought up to date in step 1.8 (it rewrites an old `Bootstrapped by nohell v<N>` line to the current version, or adds one if missing).
+Never create a vault. Never write to a path the user did not provide. If detection is ambiguous (e.g. the path exists but `_CLAUDE.md` is missing), treat the vault as absent and continue.
 
 ### 1.1 Detect state
 
@@ -187,8 +158,6 @@ Create this file if it does not exist. If it exists, **merge**: add any missing 
 
 ### 1.5 Create `.docs/` skeleton
 
-`.docs/` is the project's knowledge base. **All non-user-facing docs live here**: plans, learnings, rules, research. This is the directory the session-start protocol reads on every fresh session.
-
 Create these folders and put a small `README.md` in each describing what belongs there. Do not create them if they already exist with content.
 
 ```
@@ -278,9 +247,9 @@ The table and routing heuristics are how agents (and humans) decide which subage
 - Adding a row to a table is not enough. Verify the row's `When to call` column and the corresponding `Routing heuristics` line both reflect the agent's current `description` field.
 ```
 
-### 1.6 Create the core agents
+### 1.6 Create the agents
 
-Write these six files to `.claude/agents/`. Skip any that already exist. These are the **core workflow agents**, installed for every project in both modes. In Mode B, Phase 2 adds project-tailored agents on top of these; it does not replace them. Each file uses this exact YAML frontmatter format.
+Write these six files to `.claude/agents/`. Skip any that already exist. Each file uses this exact YAML frontmatter format.
 
 #### `.claude/agents/planner.md`
 
@@ -500,44 +469,44 @@ description: Invoke the learner agent to distill lessons from the recent session
 Invoke the learner subagent now. Have it reflect on the recent session, distill any genuine lessons, and append them to `.docs/learnings/`. If the learner identifies flaws in any agent file or in CLAUDE.md, it should fix them directly without asking.
 ```
 
+**If an Obsidian vault was detected in step 1.0**, also write `.claude/commands/vault-sync.md`. Skip if it exists. If no vault was detected, do not write this file.
+
+```markdown
+---
+description: Push this project's current state to the Obsidian second-brain vault. Updates the project note, appends a dev log if substantive work happened, appends log.md, and updates index.md. No-op if no vault is reachable at runtime.
+---
+
+Detect the Obsidian vault at runtime: read `$env:OBSIDIAN_VAULT_PATH` first, then `~/.claude/settings.json` `env.OBSIDIAN_VAULT_PATH`. If neither resolves to a directory containing `_CLAUDE.md` at its root, print "no vault configured" and stop.
+
+If the vault is reachable:
+
+1. Read the vault's `_CLAUDE.md` to learn its conventions (folder map, AI-first rule, naming, propagation rules, voice). Those rules win over this command's defaults if they conflict.
+2. Determine this project's slug. Prefer in order: `package.json` `name`, the repo folder name, an explicit user confirmation. Slug must be lowercase, hyphen-separated, no spaces.
+3. Read or create `<vault>/Projects/<slug>.md` per the vault's AI-first rule (frontmatter `date`, `type: project`, `tags: [project]`, `ai-first: true`; `## For future Claude` preamble; status, stack, repo path, active threads, key decisions, open questions). If the note already exists, update sections that changed. Never overwrite content the user wrote.
+4. If this session did substantive work (a commit on a non-trivial change, a feature, a meaningful decision, a structural refactor), append a dev log at `<vault>/Dev Logs/YYYY-MM-DD - <slug> - <short-description>.md`. AI-first format.
+5. Append one timestamped entry to `<vault>/log.md` summarizing what changed: `## [YYYY-MM-DD] vault-sync | <slug> - <one-line summary>`.
+6. Update `<vault>/index.md` if you created a new note: add the entry under its folder section, format `- [[Note Name]] - brief description`.
+7. Report back: a clean list of vault writes performed (created vs updated, file paths).
+
+Never delete vault content. Never modify `raw/`, `Templates/`, `_export/`, or `.obsidian/`. Match the vault's voice per its `_CLAUDE.md` (terse, bullet-first, NO em dashes).
+```
+
 ### 1.8 Write `CLAUDE.md` and `AGENTS.md` (initial skeleton)
 
-Write the **initial skeleton** version of `CLAUDE.md` now. Phase 3 will fill in the project-specific bits at the end. If `CLAUDE.md` already exists, do not overwrite it. Instead, merge in any sections from the skeleton that are missing (the **Session start protocol** section in particular must end up present, since older bootstraps did not have it).
+Write the **initial skeleton** version of `CLAUDE.md` now. Phase 3 will fill in the project-specific bits at the end. If `CLAUDE.md` already exists, do not overwrite it. Instead, merge in any sections from the skeleton that are missing.
 
-**Version marker.** The skeleton carries a `> Bootstrapped by nohell v7` line directly under the H1 title. When creating `CLAUDE.md`, include it as shown. When merging into an existing `CLAUDE.md`: if a `> Bootstrapped by nohell v<N>` line already exists, rewrite it to `v7`; if none exists, insert it directly under the H1 title. There must be exactly one such line.
-
-After writing `CLAUDE.md`, write `AGENTS.md` with **identical content** (marker line included) so non-Claude tools (Cursor, Codex, etc.) read the same instructions. They are kept in sync by the learner.
+After writing `CLAUDE.md`, write `AGENTS.md` with **identical content** so non-Claude tools (Cursor, Codex, etc.) read the same instructions. They are kept in sync by the learner.
 
 #### `CLAUDE.md` skeleton
 
 ````markdown
 # Project Instructions for AI Agents
 
-> Bootstrapped by nohell v7
-
 This file is the routing index for any AI agent working in this repo. Read it first, every session, before doing anything else. `AGENTS.md` is a mirror of this file for non-Claude tools.
-
-## Session start protocol
-
-All relevant docs live in `.docs/`. At the start of every fresh session, before doing any work, you bring yourself up to speed on your own:
-
-1. Read this file (`CLAUDE.md`) in full.
-2. Read every file in `.docs/rules/` (hard rules, non-negotiable).
-3. Read the three most recent files in `.docs/learnings/` (lessons from past mistakes, do not repeat them).
-4. Run the resume check: glob `.docs/plans/*.md` and look for any plan with `status: in-progress` (see Resume protocol below).
-5. Gather any other context you need (recent git log, the project tree, the project-specific section of this file) to reach a point where you can start working.
-
-The user will usually open the session with nothing more than a greeting like "Hi". When that happens:
-
-- Immediately reply with exactly `Session started`.
-- Then silently perform steps 1-5 above.
-- When you are done and ready, reply with exactly `Ready to work.` (and, if a `status: in-progress` plan was found, the one-line resume summary the Resume protocol requires).
-
-Do not wait for the user to spell out the rules each session. The handshake is the rule: greeting in, `Session started`, do the reading, `Ready to work.` out.
 
 ## Read first, every task, no exceptions
 
-Beyond the session-start protocol, before starting any individual task, re-read as needed:
+Before starting any task, read in this order:
 
 1. This file in full.
 2. Every file in `.docs/rules/` (these are hard rules, non-negotiable).
@@ -585,8 +554,6 @@ Anything markdown that is not user-facing documentation goes in `.docs/`. User-f
 | `researcher` | When you need codebase or external context | `.docs/research/YYYY-MM-DD-<slug>.md` |
 | `debugger` | When something is broken and root cause is unclear | Root cause analysis + proposed fix |
 | `learner` | After a meaningful task, OR via `/learn` | New entries in `.docs/learnings/`, edits to agents or CLAUDE.md |
-
-<!-- Project-tailored agents (added by Phase 2 for existing repos) are appended to this table. -->
 
 ### Routing heuristics
 
@@ -641,7 +608,7 @@ This rule applies to any agent that edits `.claude/agents/` (including the learn
 
 ## Project-specific section
 
-<!-- Phase 3 of the bootstrap fills this in based on what actually exists in the repo. -->
+<!-- Phase 3 of the bootstrap fills this in based on what was actually built. -->
 <!-- Until then, this section is intentionally empty. -->
 
 ### Stack
@@ -654,6 +621,73 @@ TBD - filled in by Phase 3.
 TBD - filled in by Phase 3.
 ````
 
+### 1.8.1 If vault detected, append a `Vault integration` section to `CLAUDE.md`
+
+If step 1.0 found an Obsidian vault, insert the following section into `CLAUDE.md` between the **Commit and PR hygiene** subsection and the **Project-specific section** marker. Replace `<VAULT_PATH>` with the absolute path captured in 1.0. Mirror the same edit into `AGENTS.md`. If no vault was detected, skip this step entirely.
+
+`````markdown
+## Vault integration (Obsidian second brain)
+
+> This section is only present because an Obsidian vault was detected when this project was bootstrapped. The path below was captured at that time. If the vault moves, edit this section. To disable the integration entirely, delete this section.
+
+This project shares context with the user's Obsidian vault at:
+
+```
+<VAULT_PATH>
+```
+
+The vault is the **cross-project summary layer**. This repo remains the source of truth for code, plans, learnings, and rules. The vault is the source of truth for: people, decisions that span more than one project, reusable library entries, daily flow, weekly reviews.
+
+### Read order at session start (when vault is reachable)
+
+1. This file in full.
+2. `.docs/rules/` and the three most recent `.docs/learnings/` (per the read-first rule above).
+3. `<VAULT_PATH>/_CLAUDE.md` (vault operating manual; defines folder layout, AI-first rule, naming, voice). Its rules win over this section if they conflict.
+4. `<VAULT_PATH>/Projects/<this-project>.md` if it exists (the vault's running summary of this project).
+
+If the vault path does not resolve (different machine, env var unset, vault moved), skip the vault-side reads silently. The project still works standalone.
+
+### When to propagate from project to vault
+
+| Project event | Vault write |
+|---|---|
+| Substantive dev session ends | `Dev Logs/YYYY-MM-DD - <slug> - <description>.md` (AI-first format) |
+| Project bootstrapped or registered | `Projects/<slug>.md` (status, stack, repo path, active threads) |
+| Status / stack / active-thread change | Update `Projects/<slug>.md` |
+| Decision with cross-project impact | Append to `Projects/<slug>.md` § Key Decisions |
+| New person mentioned | `People/<Full Name>.md` (stub if missing) |
+| Reusable component or pattern stashed | `Library/<Name>.md` (rich frontmatter per the vault's Library schema) |
+| Any vault write | One entry in `log.md` + update `index.md` if a new note was created |
+
+Use the `/vault-sync` slash command for a guided push of project state at session end.
+
+### What NOT to propagate
+
+- Code, build artifacts, lockfiles, env files, secrets
+- Granular in-progress plans (those stay in `.docs/plans/`)
+- Per-task learnings (those stay in `.docs/learnings/`) unless the lesson crosses project boundaries
+- Anything inside the vault's `raw/`, `Templates/`, `_export/`, or `.obsidian/`
+
+### Voice and format for vault writes
+
+- Match the vault's `_CLAUDE.md` rules exactly. They override this section.
+- NO em dashes anywhere. Use regular hyphens, commas, periods, semicolons, parentheses.
+- AI-first: every vault note has frontmatter (`date`, `type`, `tags`, `ai-first: true`) and a `## For future Claude` preamble (2-3 sentences explaining the note so future-Claude can decide relevance in 10 seconds).
+- Cross-link with `[[wikilinks]]` for every person, project, decision, or library entry referenced.
+- Sources verbatim with URLs inline. Recency markers per external claim.
+
+### Reviewer and learner behavior
+
+- `reviewer`: do not block on vault propagation. The vault is the optional summary layer; missing vault writes are a `note` finding, never a blocker.
+- `learner`: if a captured lesson crosses project boundaries (a constraint that applies elsewhere, a person worth remembering, a reusable component, a tool worth stashing), also append a brief note to the appropriate vault folder using the vault's voice. Per-project lessons stay in `.docs/learnings/` only.
+
+### Conflict resolution
+
+- The vault's `_CLAUDE.md` wins on vault-side conventions (folder names, frontmatter schema, voice).
+- This file wins on project-side conventions (`.docs/` structure, plan format, agent routing).
+- If both files disagree on something that affects both sides (e.g. commit attribution), the project's `CLAUDE.md` wins for git operations; the vault's `_CLAUDE.md` wins for vault writes.
+`````
+
 ### 1.9 Nano Banana check (image generation)
 
 If the `cc-nano-banana` skill is available in this environment (check the available skills list in your system context), add a section to `CLAUDE.md` titled `### Image generation` that says:
@@ -664,73 +698,29 @@ If the skill is not available, skip this section. Do not invent a fallback.
 
 ---
 
-## Phase 2: Context gathering and tailored agents (Mode B only)
+## Phase 2: Project build
 
-**Skip this entire phase in Mode A (greenfield).** There is no codebase to study and no domain to tailor agents to; go straight to Phase 3.
+If there are project build instructions below the marker, execute them now as a normal task. Use the agents you just installed. Specifically:
 
-In Mode B (existing repo), spend real effort understanding the project on your own, then build agents that fit it. Do not ask the user to explain their own codebase first; read it.
+- For anything more than a trivial change, invoke `planner` first.
+- After implementation, invoke `reviewer`.
+- If the build instructions are vague or contain unresolved choices, **stop and ask the user before scaffolding**. Do not improvise major architectural decisions.
 
-### 2.1 Gather context
-
-Study the repository until you can describe it accurately:
-
-- **Stack and tooling.** Package manager (lockfile), language(s), framework(s), test runner, linter/formatter, build tool. Read `package.json` (or the equivalent manifest) in full.
-- **Architecture.** Entry points, directory structure, how the app is organized (routes, modules, services, packages in a monorepo).
-- **Domain.** What the project actually does. Read the README, the main source files, and any existing docs. Name the domain in plain language.
-- **Conventions in use.** Code style, naming patterns, how tests are written, how components/modules are structured. These become inputs for the tailored agents and for Phase 3.
-- **Commands.** The real dev / build / test / lint commands from the manifest scripts.
-
-Use the `researcher` agent for any deep dive that would otherwise flood the main context. Write a context summary to `.docs/research/YYYY-MM-DD-bootstrap-context.md` so future sessions inherit it (Question: "What is this project and how is it built?"; Short answer; Evidence with file paths; Open questions).
-
-If a prior bootstrap already left a `*bootstrap-context*.md` note in `.docs/research/`, do not write a second dated duplicate. Read it, then update it in place (refresh stale facts, append what changed), keeping its existing filename.
-
-### 2.2 Generate project-tailored agents
-
-Based on what you found, write **additional** agents to `.claude/agents/` that fit this specific project. These sit alongside the six core agents (do not modify or replace the core six). Only create an agent that earns its place: it must encode project-specific knowledge or a recurring task that the generic core agents would handle worse.
-
-On a re-bootstrap, first read what is already in `.claude/agents/`. Skip any tailored agent whose responsibility is already covered by an existing agent (core or previously generated); do not create a near-duplicate under a new name. Only add genuinely new coverage, and update the docs in 2.3 to match the full current set.
-
-Examples of good tailored agents, by project type:
-
-- A Next.js / React app: a `route-builder` (scaffolds routes/pages per the project's App Router conventions), a `component-author` (builds UI matching the existing design system), an `a11y-auditor`.
-- A backend API: an `endpoint-builder` (adds routes following the project's controller/service pattern), a `migration-author` (writes DB migrations in the project's chosen tool), a `contract-tester`.
-- A library/SDK: a `public-api-guardian` (guards the exported surface and changelog), an `example-author`.
-- A data/ML project: a `pipeline-builder`, a `notebook-tidier`.
-
-For each tailored agent:
-
-- Use the same YAML frontmatter format as the core agents (`name`, `description`, `tools`, `model`).
-- Write a `description` precise enough to route to (when to call it, what it produces, what NOT to use it for). Mention delegation boundaries to the core agents where relevant (e.g. "do not use for writing plans, delegate to `planner`").
-- Bake the project's real conventions into the body (actual directory paths, actual naming patterns, actual commands), not generic advice.
-- Pick `model` deliberately: `sonnet` for build/codegen agents, `opus` for review/judgement agents.
-
-Keep the tailored set small and high-value. Two to four well-targeted agents beat eight vague ones. If the project is generic enough that the core six cover it, it is fine to add zero tailored agents.
-
-### 2.3 Register the tailored agents in the docs
-
-For every tailored agent you created, update (per the `agent-docs-sync` rule):
-
-1. The **Available agents** table in `CLAUDE.md` (add a row).
-2. The **Routing heuristics** subsection in `CLAUDE.md` (add a line describing when to route to it).
-3. `AGENTS.md` (mirror the same edits).
-
-Do this now, in Phase 2, so the index is correct before Phase 3 finalizes the docs.
+If the build section is empty or absent, skip Phase 2 entirely and go to Phase 3.
 
 ---
 
 ## Phase 3: Documentation finalization
 
-After Phase 2 completes (or immediately, if Phase 2 was skipped in Mode A), update `CLAUDE.md` and `AGENTS.md` to reflect the actual state of the project.
+After Phase 2 completes (or immediately, if Phase 2 was skipped), update `CLAUDE.md` and `AGENTS.md` to reflect the actual state of the project.
 
-### 3.1 Detect what exists
+### 3.1 Detect what was built
 
 Read the project tree. Identify:
 - The package manager (presence of `pnpm-lock.yaml`, `package-lock.json`, `yarn.lock`, `bun.lockb`)
 - The framework (look at `package.json` dependencies, top-level config files)
 - The entry points (typical: `src/`, `app/`, `pages/`, `index.html`)
 - The dev / build / test commands (from `package.json` scripts)
-
-In Mode A (greenfield) most of this will be empty. That is expected. Do not invent a stack the user has not chosen.
 
 ### 3.2 Fill in the project-specific section of `CLAUDE.md`
 
@@ -740,7 +730,7 @@ Replace the `TBD` placeholders in the **Project-specific section** with concrete
 - **How to run**: dev command, build command, test command, lint command (only the ones that actually exist in `package.json`)
 - **Key paths**: where the main source lives, where tests live, where assets live
 
-Keep it factual. Do not pad. If you cannot determine something, write `unknown` rather than guessing. In Mode A, it is fine for these to stay mostly `TBD` / `unknown` until the user starts building; say so explicitly rather than inventing.
+Keep it factual. Do not pad. If you cannot determine something, write `unknown` rather than guessing.
 
 ### 3.3 Mirror to `AGENTS.md`
 
@@ -753,8 +743,15 @@ Print a concise summary of what was created or modified, grouped by:
 - **Modified** (existing files updated)
 - **Skipped** (existing files left untouched)
 
-State which mode ran (A greenfield or B existing repo) and that this repo is now marked `Bootstrapped by nohell v7`. In Mode B, list the project-tailored agents you generated and one line each on what they do. In Mode A, state that no context-gathering or tailored agents ran because the project is greenfield, and that they will be worth revisiting once there is a real codebase.
+If an Obsidian vault was detected in step 1.0, also include a **Vault integration** line stating the vault path, that `CLAUDE.md` has a `Vault integration` section, and that `/vault-sync` is available for pushing project state to the vault. If no vault was detected, do not mention the vault at all. The user does not need to know about an integration they did not opt into.
 
-If step 1.0.5 ran (a prior bootstrap was detected), add a **Migration** line: the prior version detected, what was removed (e.g. Obsidian `vault-sync.md` and the `Vault integration` section), or that the user declined removal and the artifacts remain.
+End with one sentence telling the user that `/learn` is available for capturing lessons, and that the agents will run automatically when invoked by name or by routing heuristic.
 
-End with one sentence telling the user that `/learn` is available for capturing lessons, that the agents will run automatically when invoked by name or by routing heuristic, and that future sessions follow the session-start handshake (greet -> `Session started` -> read context -> `Ready to work.`).
+---
+
+## PROJECT BUILD INSTRUCTIONS
+
+<!--
+Append your build prompt below this marker. Anything below this line is treated as Phase 2 input.
+If you leave it empty, the bootstrap will only set up the Claude environment and skip Phase 2.
+-->
