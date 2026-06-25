@@ -1,17 +1,31 @@
 # claude-bootstrap
 
-A single-prompt bootstrap for setting up a Claude Code environment in any project. Works on greenfield (empty directory) and brownfield (existing codebase) the same way: it creates what is missing and leaves the rest alone.
+A single-prompt bootstrap for setting up a Claude Code environment in any project. It sets up the environment only: git hygiene, permissions, a `.docs/` knowledge base, subagents, slash commands, and the `CLAUDE.md` / `AGENTS.md` routing files. It does not build an application. You drive feature work yourself in later sessions, against the machinery it installs.
 
-The prompt is also **appendable**. Paste it together with a build prompt (for example, "build me a Next.js marketing site for X") and Claude will set up the environment, build the project, then finalize the project documentation in one pass.
+It creates what is missing and leaves the rest alone, so re-running it on an already-set-up repo is safe.
 
 ## Usage
 
 1. Open `claude-bootstrap-prompt.md` and copy its full contents.
 2. Paste into a fresh Claude Code session running in the project directory.
-3. Optional: append your build instructions below the `## PROJECT BUILD INSTRUCTIONS` marker at the bottom of the prompt before sending.
-4. Send.
+3. Send.
 
-That is the whole workflow.
+That is the whole workflow. The prompt detects on its own whether the directory is greenfield or an existing codebase (see Modes below) and behaves accordingly.
+
+## Modes
+
+The prompt auto-detects which mode applies from what is on disk. It does not ask you to choose.
+
+- **Mode A (greenfield).** Empty or barely-set-up directory. It installs the machinery, writes skeleton docs, and stops at `Ready to work.` No questions, no scaffolding.
+- **Mode B (existing repo).** A real codebase. It installs the machinery, then studies the project on its own (stack, architecture, domain, conventions, commands), writes a context note to `.docs/research/`, and generates a few project-tailored agents on top of the core six.
+
+## Session-start handshake
+
+The generated `CLAUDE.md` makes every future session self-briefing. Open the session with a greeting like "Hi" and the agent replies `Session started`, silently reads `.docs/` rules, learnings, and in-progress plans to gather context, then replies `Ready to work.` No need to re-paste the rules each session.
+
+## Re-bootstrapping and versioning marker
+
+Each run stamps a `Bootstrapped by nohell v<N>` marker into the generated `CLAUDE.md`. On a re-run, the prompt reads that marker to detect a prior bootstrap and migrate: it strips artifacts older versions installed but the current one dropped (for example the old Obsidian vault integration), asking for confirmation before deleting anything, and avoids duplicating context notes or tailored agents.
 
 ## What the prompt sets up
 
@@ -19,7 +33,7 @@ When run, it produces (or merges into existing files):
 
 ```
 <project root>/
-  CLAUDE.md                    routing index, hard rules, agent table
+  CLAUDE.md                    routing index, hard rules, agent table, session-start handshake, version marker
   AGENTS.md                    mirror of CLAUDE.md for non-Claude tools
   .gitignore                   sensible defaults for Node-style projects
   .claude/
@@ -31,14 +45,17 @@ When run, it produces (or merges into existing files):
       researcher.md
       debugger.md
       learner.md
+      <tailored>.md            extra project-specific agents, generated in Mode B only
     commands/
       learn.md                 the /learn slash command
   .docs/
     plans/                     implementation plans, one per task
     learnings/                 append-only lessons from past sessions
     rules/                     hard rules, more granular than CLAUDE.md
-    research/                  findings from the researcher agent
+    research/                  findings from the researcher agent (incl. Mode B context note)
 ```
+
+The six agents above are the core set, installed in both modes. In Mode B the prompt adds a small number of project-tailored agents (for example a route-builder for a Next.js app) on top of them and registers each in the `CLAUDE.md` agent table.
 
 ## What the agents do
 
