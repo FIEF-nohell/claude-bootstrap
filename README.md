@@ -21,13 +21,15 @@ The prompt auto-detects which mode applies from what is on disk. It does not ask
 - **Mode A (greenfield).** Empty or barely-set-up directory. It installs the machinery, writes skeleton docs, and stops at `Ready to work.` No questions, no scaffolding.
 - **Mode B (existing repo).** A real codebase. It installs the machinery, then studies the project on its own (stack, architecture, domain, conventions, commands), writes a context note to `.docs/research/`, and generates a few project-tailored agents on top of the core six.
 
-## Session-start handshake
+## Session-start hook
 
-The generated `AGENTS.md` (which `CLAUDE.md` points to) makes every future session self-briefing. Open the session with a greeting like "Hi" and the agent replies `Session started`, silently reads `.docs/` rules, learnings, and in-progress plans to gather context, then replies `Ready to work.` No need to re-paste the rules each session.
+Every future session self-briefs deterministically. A committed SessionStart hook (`.claude/hooks/session-start.ps1`, wired in `.claude/settings.json`) injects the project context at the start of every session: all hard rules from `.docs/rules/`, every high-severity learning plus the three most recent, and any in-progress plan. The agent does not have to remember to read anything; the hook guarantees it. The old "Hi" / `Session started` handshake is gone; the agent just confirms the hook context is present and replies `Ready to work.` (plus a resume summary if an in-progress plan exists).
+
+`CLAUDE.md` imports `AGENTS.md` via the `@AGENTS.md` include syntax, so the full instructions load automatically without a second manual read.
 
 ## Re-bootstrapping and versioning marker
 
-Each run stamps a `Bootstrapped by nohell v<N>` marker into the generated `AGENTS.md` (and the `CLAUDE.md` pointer). On a re-run, the prompt reads that marker to detect a prior bootstrap and migrate: it strips artifacts older versions installed but the current one dropped (for example the old Obsidian vault integration), asking for confirmation before deleting anything, and avoids duplicating context notes or tailored agents.
+Each run stamps a `Bootstrapped by nohell v<N>` marker into the generated `AGENTS.md` (and the `CLAUDE.md` pointer). On a re-run, the prompt reads that marker to detect a prior bootstrap and migrate: it strips artifacts older versions installed but the current one dropped (for example the old Obsidian vault integration), folds a duplicated full `CLAUDE.md` back into `AGENTS.md` and reduces it to the pointer stub, installs the session-start hook, replaces the old per-task reread section, verifies and supersedes the stale subagent-dispatch workaround, and removes hardcoded model pins. It asks for confirmation before deleting anything, and avoids duplicating context notes or tailored agents.
 
 ## What the prompt sets up
 
@@ -35,11 +37,13 @@ When run, it produces (or merges into existing files):
 
 ```
 <project root>/
-  AGENTS.md                    single source of truth: routing index, hard rules, agent table, session-start handshake, version marker
-  CLAUDE.md                    thin pointer that tells Claude Code to read AGENTS.md
-  .gitignore                   sensible defaults for Node-style projects
+  AGENTS.md                    single source of truth: routing index, hard rules, agent table, version marker
+  CLAUDE.md                    thin pointer that imports AGENTS.md via @AGENTS.md
+  .gitignore                   stack-aware defaults (Node, Rust, Python blocks by detection)
   .claude/
-    settings.json              permissions allowlist, denied destructive ops
+    settings.json              permissions allowlist, denied destructive ops, hook wiring
+    hooks/
+      session-start.ps1        SessionStart hook: injects rules, learnings, in-progress plans
     agents/
       planner.md
       implementer.md
@@ -51,9 +55,9 @@ When run, it produces (or merges into existing files):
     commands/
       learn.md                 the /learn slash command
   .docs/
-    plans/                     implementation plans, one per task
+    plans/                     implementation plans, one per task (frontmatter carries a base sha for exact review diffs)
     learnings/                 append-only lessons from past sessions
-    rules/                     hard rules, more granular than AGENTS.md
+    rules/                     hard rules, more granular than AGENTS.md (seeded: plan-execution, agent-docs-sync, docs-current-state-only; Phase 3 adds verification)
     research/                  findings from the researcher agent (incl. Mode B context note)
 ```
 
@@ -85,8 +89,9 @@ The `learner` has permission (via committed `.claude/settings.json`) to edit `.c
 
 The bootstrap commits an opinionated permissions allowlist to `.claude/settings.json`:
 
-- Auto-allow: agent self-editing, doc writes, slash command writes, standard dev Bash (`pnpm`, `npm`, `git status`, `git add`, `git commit`, etc).
-- Auto-deny: destructive ops (`rm -rf /*`, `git push --force`, `git reset --hard`).
+- Auto-allow: agent self-editing, doc writes, slash command and hook writes, standard dev Bash (`pnpm`, `npm`, `cargo`, `git status`, `git add`, `git commit`, etc).
+- Auto-deny: destructive ops (`rm -rf /*`, `git push --force`, `git reset --hard`, `git clean`).
+- `Edit(CLAUDE.md)` is deliberately not allowed: the pointer stub never needs edits, so a permission prompt on it acts as a tripwire.
 
 These are committed, not local, so the same setup is portable across machines.
 
