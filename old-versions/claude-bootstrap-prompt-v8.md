@@ -2,17 +2,15 @@
 
 You are bootstrapping the Claude Code environment for the project at the current working directory. Read this entire prompt before taking any action.
 
-**This message is a work order, not a greeting.** The repo you are in may already contain project instructions (a `CLAUDE.md` / `AGENTS.md` from a previous bootstrap) with a session-start protocol that tells you to reply `Session started` or `Ready to work.` when the user opens with a greeting. That protocol does NOT apply to this message. Do not reply `Ready to work.` or any other handshake phrase until every phase of this prompt has actually executed. If you notice yourself about to answer this prompt in one short line without having run a single tool, stop: that is the exact failure mode this paragraph exists to prevent.
-
 ## What this prompt does
 
 This prompt sets up the Claude Code environment: git hygiene, permissions, a `.docs/` knowledge base, a session-start hook, a set of subagents, slash commands, and the project instructions. It does **not** build an application. There is no "build this app" section. You drive feature work yourself in later sessions, against the machinery this bootstrap installs.
 
 **`AGENTS.md` is the single source of truth for project instructions.** It holds the full routing index, rules, agent table, and project-specific section. `CLAUDE.md` is a thin pointer that imports `AGENTS.md` via the `@AGENTS.md` include syntax, so Claude Code loads the full content automatically without a second manual read. Edits land in `AGENTS.md` only; the `CLAUDE.md` stub never needs content updates.
 
-**This bootstrap is `nohell v9`.** Treat that exact string as the current version throughout this prompt. It gets stamped into the generated `AGENTS.md` (and the `CLAUDE.md` pointer stub) as a `Bootstrapped by nohell v9` marker, so any future run can tell which version last touched this repo and migrate accordingly (see step 1.0.5). Whenever this prompt is revised to a new version, bump the number here, in the step 1.8 marker line, and in the migration logic in step 1.0.5.
+**This bootstrap is `nohell v8`.** Treat that exact string as the current version throughout this prompt. It gets stamped into the generated `AGENTS.md` (and the `CLAUDE.md` pointer stub) as a `Bootstrapped by nohell v8` marker, so any future run can tell which version last touched this repo and migrate accordingly (see step 1.0.5). Whenever this prompt is revised to a new version, bump the number here, in the step 1.8 marker line, and in the migration logic in step 1.0.5.
 
-Design principles (introduced in v8, they explain several changes from v7):
+Design principles of v8 (they explain several changes from v7):
 
 - **Hooks over obedience.** Anything the model was previously trusted to do at session start (read rules, read learnings, check for in-progress plans) is now injected deterministically by a SessionStart hook. Prompts ask; hooks guarantee.
 - **Load context once.** The `@AGENTS.md` import plus the hook output mean no file gets read twice per session. Per-task full rereads are gone; only targeted re-reads remain.
@@ -76,17 +74,15 @@ If none of these are present, this is a fresh bootstrap: skip the rest of 1.0.5 
 
 2. **Stub-ify a duplicated `CLAUDE.md` (v7 and earlier).** Older bootstraps and manual edits often left `CLAUDE.md` as a full copy of `AGENTS.md`, or as a full instructions file with no `AGENTS.md` counterpart. Diff the two files. Fold anything `AGENTS.md` is missing into `AGENTS.md` (into the matching section, or the project-specific section), then replace `CLAUDE.md` with the v8 pointer stub from step 1.8. If `CLAUDE.md` is already a pointer but lacks the `@AGENTS.md` import line, replace it with the v8 stub.
 
-3. **Replace the per-task reread section (v7).** If `AGENTS.md` contains a `## Read first, every task, no exceptions` section, replace it with the `## Targeted re-reads` section from the skeleton in step 1.8. The session-start hook now covers what that section demanded.
+3. **Replace the per-task reread section (v7).** If `AGENTS.md` contains a `## Read first, every task, no exceptions` section, replace it with the `## Targeted re-reads` section from the v8 skeleton. The session-start hook now covers what that section demanded.
 
-4. **Install the session-start hook (v7 and earlier).** If `.claude/hooks/session-start.ps1` or the corresponding `hooks` entry in `.claude/settings.json` is missing, install both per steps 1.4 and 1.5.5, and update the `## Session start protocol` section of `AGENTS.md` to the current version from the skeleton in step 1.8.
+4. **Install the session-start hook (v7 and earlier).** If `.claude/hooks/session-start.ps1` or the corresponding `hooks` entry in `.claude/settings.json` is missing, install both per steps 1.4 and 1.5.5, and update the `## Session start protocol` section of `AGENTS.md` to the v8 version.
 
-5. **Reconcile stale seeded rule files (v7 and earlier).** Older bootstraps seeded `.docs/rules/plan-execution.md` and `.docs/rules/agent-docs-sync.md` with text that predates the single-source-of-truth layout: references to an agent table in `CLAUDE.md`, "AGENTS.md is a full mirror of CLAUDE.md", per-task reread demands. "Skip if exists" (step 1.5) does not protect content the bootstrap itself wrote in an older version. For each rule file this prompt seeds: if the existing content is recognizably an older bootstrap's seed (same heading and structure, stale wording), update the stale statements to the current seed's wording while preserving any user-added lines. If the file has clearly diverged into user-owned content, leave it and flag it in the summary. Then grep the rest of `.docs/rules/` and `.docs/learnings/` for mirror-era claims (e.g. "mirror of CLAUDE.md", "update BOTH CLAUDE.md and AGENTS.md"): fix rule files directly; for learnings, edit only the stale factual references and never delete a learning. This matters because the session-start hook injects every rule into every future session: one stale rule contradicts the new architecture forever.
+5. **Supersede the subagent-dispatch workaround (v7 and earlier).** Some repos carry a learning claiming the Agent tool cannot dispatch `.claude/agents/` subagents by name and prescribing an inline-spec workaround. Current Claude Code registers project agents natively. Verify once (dispatch any project agent by name with a trivial prompt). If it works, edit that learning to add `superseded-by:` frontmatter pointing to a new short learning that states native dispatch works, and remove the workaround instructions from `AGENTS.md`. If it does not work in this environment, leave everything as is.
 
-6. **Supersede the subagent-dispatch workaround (v7 and earlier).** Some repos carry a learning claiming the Agent tool cannot dispatch `.claude/agents/` subagents by name and prescribing an inline-spec workaround. Current Claude Code registers project agents natively. Verify once (dispatch any project agent by name with a trivial prompt). If it works, edit that learning to add `superseded-by:` frontmatter pointing to a new short learning that states native dispatch works, and remove the workaround instructions from `AGENTS.md`. If it does not work in this environment, leave everything as is. Do not skip the verification dispatch: if you cannot run it (no Agent tool, permission denied), state that explicitly in the final summary instead of silently marking this step done.
+6. **Remove hardcoded model pins (v7 and earlier).** In each of the six core agent files, if `model:` is `sonnet` or `opus` and the file body is otherwise unmodified from the bootstrap original, change it to `model: inherit`. If the user visibly customized the agent, leave it and mention it in the summary.
 
-7. **Remove hardcoded model pins (v7 and earlier).** In each of the six core agent files, if `model:` is `sonnet` or `opus` and the file body is otherwise unmodified from the bootstrap original, change it to `model: inherit`. If the user visibly customized the agent, leave it and mention it in the summary.
-
-8. **Record what you migrated** so the Phase 3 summary can report it (prior version, what was removed, folded, reconciled, or left).
+7. **Record what you migrated** so the Phase 3 summary can report it (prior version, what was removed, folded, or left).
 
 The version marker itself is brought up to date in step 1.8.
 
@@ -650,16 +646,16 @@ Invoke the learner subagent now. Have it reflect on the recent session, distill 
 
 **Write `AGENTS.md`** using the skeleton below. If `AGENTS.md` already exists, do not overwrite it; merge in any sections from the skeleton that are missing, and apply the section replacements from step 1.0.5.
 
-**Write the `CLAUDE.md` pointer stub** with the exact content shown below. If `CLAUDE.md` already exists and is a full instructions file (it contains the routing index rather than a pointer), do not silently overwrite it: fold anything `AGENTS.md` is missing into `AGENTS.md` first, then replace `CLAUDE.md` with the stub. If `CLAUDE.md` is already the current stub, leave it.
+**Write the `CLAUDE.md` pointer stub** with the exact content shown below. If `CLAUDE.md` already exists and is a full instructions file (it contains the routing index rather than a pointer), do not silently overwrite it: fold anything `AGENTS.md` is missing into `AGENTS.md` first, then replace `CLAUDE.md` with the stub. If `CLAUDE.md` is already the v8 stub, leave it.
 
-**Version marker.** Both files carry a `> Bootstrapped by nohell v9` line directly under the H1 title. When creating them, include it as shown. When updating existing files: if a `> Bootstrapped by nohell v<N>` line already exists, rewrite it to the current version; if none exists, insert it directly under the H1 title. Exactly one such line per file.
+**Version marker.** Both files carry a `> Bootstrapped by nohell v8` line directly under the H1 title. When creating them, include it as shown. When updating existing files: if a `> Bootstrapped by nohell v<N>` line already exists, rewrite it to `v8`; if none exists, insert it directly under the H1 title. Exactly one such line per file.
 
 #### `CLAUDE.md` pointer stub
 
 ```markdown
 # Project Instructions for AI Agents
 
-> Bootstrapped by nohell v9
+> Bootstrapped by nohell v8
 
 All project instructions live in `AGENTS.md`, imported below via `@AGENTS.md`. The import loads the full content into context automatically: do NOT Read `AGENTS.md` again manually. This file is intentionally a pointer only; never edit it and never duplicate content here. All edits to project instructions go in `AGENTS.md`.
 
@@ -671,7 +667,7 @@ All project instructions live in `AGENTS.md`, imported below via `@AGENTS.md`. T
 ````markdown
 # Project Instructions for AI Agents
 
-> Bootstrapped by nohell v9
+> Bootstrapped by nohell v8
 
 This file (`AGENTS.md`) is the routing index for any AI agent working in this repo, and the single source of truth for project instructions. `CLAUDE.md` is a thin pointer that imports this file so Claude Code loads it automatically; all real content lives here. Non-Claude agents: read this file in full before doing anything else.
 
@@ -901,9 +897,9 @@ Also write `.docs/rules/verification.md` (skip if it exists) containing the same
 
 ### 3.3 Verify the `CLAUDE.md` pointer
 
-Confirm `CLAUDE.md` is the current pointer stub: it carries the version marker, the `@AGENTS.md` import line, and no duplicated instructions. If an older bootstrap left a full instructions file in `CLAUDE.md`, ensure its content has been folded into `AGENTS.md`, then reduce `CLAUDE.md` to the stub.
+Confirm `CLAUDE.md` is the v8 pointer stub: it carries the version marker, the `@AGENTS.md` import line, and no duplicated instructions. If an older bootstrap left a full instructions file in `CLAUDE.md`, ensure its content has been folded into `AGENTS.md`, then reduce `CLAUDE.md` to the stub.
 
-Also verify the hook wiring: `.claude/hooks/session-start.ps1` exists and `.claude/settings.json` references it under `hooks.SessionStart`. Run the script once directly and confirm it prints the context block without errors. Count its output lines. If the output exceeds roughly 200 lines, add a **Hook payload** warning to the final summary: name the biggest contributors (oversized rules, the number of high-severity learnings) and recommend pruning rules or downgrading learning severities. Do not prune anything yourself; that is the user's call.
+Also verify the hook wiring: `.claude/hooks/session-start.ps1` exists and `.claude/settings.json` references it under `hooks.SessionStart`. Run the script once directly and confirm it prints the context block without errors.
 
 ### 3.4 Final summary to user
 
@@ -912,8 +908,8 @@ Print a concise summary of what was created or modified, grouped by:
 - **Modified** (existing files updated)
 - **Skipped** (existing files left untouched)
 
-State which mode ran (A greenfield or B existing repo) and that this repo is now marked `Bootstrapped by nohell v9`. In Mode B, list the project-tailored agents you generated and one line each on what they do. In Mode A, state that no context-gathering or tailored agents ran because the project is greenfield, and that they will be worth revisiting once there is a real codebase.
+State which mode ran (A greenfield or B existing repo) and that this repo is now marked `Bootstrapped by nohell v8`. In Mode B, list the project-tailored agents you generated and one line each on what they do. In Mode A, state that no context-gathering or tailored agents ran because the project is greenfield, and that they will be worth revisiting once there is a real codebase.
 
-If step 1.0.5 ran (a prior bootstrap was detected), add a **Migration** line: the prior version detected and what each migration did (Obsidian removal, CLAUDE.md stub-ified, per-task reread section replaced, hook installed, stale seeded rules reconciled, workaround learning superseded, model pins removed), or that the user declined a removal and the artifacts remain.
+If step 1.0.5 ran (a prior bootstrap was detected), add a **Migration** line: the prior version detected and what each migration did (Obsidian removal, CLAUDE.md stub-ified, per-task reread section replaced, hook installed, workaround learning superseded, model pins removed), or that the user declined a removal and the artifacts remain.
 
 End with one sentence telling the user that `/learn` is available for capturing lessons, that the agents dispatch by name via the Agent tool, and that every future session self-loads its context through the session-start hook.

@@ -14,6 +14,8 @@ It creates what is missing and leaves the rest alone, so re-running it on an alr
 
 That is the whole workflow. The prompt detects on its own whether the directory is greenfield or an existing codebase (see Modes below) and behaves accordingly.
 
+On re-bootstraps the prompt opens with a work-order guard: an already-bootstrapped repo carries a session-start protocol whose handshake reply (`Ready to work.`) can hijack the pasted prompt into a one-line no-op. The guard tells the model explicitly not to answer with the handshake until all phases have executed.
+
 ## Modes
 
 The prompt auto-detects which mode applies from what is on disk. It does not ask you to choose.
