@@ -12,7 +12,7 @@ This prompt sets up the Claude Code environment: git hygiene, permissions, a `.d
 
 **`AGENTS.md` is the single source of truth for project instructions.** It holds instruction topology, the routing index, rule links, agent table, and stable project facts. Individual `.docs/rules/` files are authoritative for the full content of their own rules; do not duplicate long rule bodies here. `CLAUDE.md` is a thin pointer that imports `AGENTS.md` via the `@AGENTS.md` include syntax, so Claude Code loads the full content automatically without a second manual read. Routing and project-overview edits land in `AGENTS.md`; rule-body edits land in their own files; the `CLAUDE.md` stub never needs content updates.
 
-**This bootstrap is `nohell v11`.** Treat that exact string as the current version throughout this prompt. It gets stamped into the generated `AGENTS.md` (and the `CLAUDE.md` pointer stub) as a `Bootstrapped by nohell v11` marker, so any future run can tell which version last touched this repo and migrate accordingly (see step 1.0.5). Whenever this prompt is revised to a new version, bump the number here, in the step 1.8 marker line, and in the migration logic in step 1.0.5.
+**This bootstrap is `nohell v10`.** Treat that exact string as the current version throughout this prompt. It gets stamped into the generated `AGENTS.md` (and the `CLAUDE.md` pointer stub) as a `Bootstrapped by nohell v10` marker, so any future run can tell which version last touched this repo and migrate accordingly (see step 1.0.5). Whenever this prompt is revised to a new version, bump the number here, in the step 1.8 marker line, and in the migration logic in step 1.0.5.
 
 Design principles (introduced in v8, they explain several changes from v7):
 
@@ -90,9 +90,7 @@ If none of these are present, this is a fresh bootstrap: skip the rest of 1.0.5 
 
 8. **Upgrade pre-v10 governance (v9 and earlier).** Initialize the ledger conservatively per 1.0.6, install the v10 helpers and metadata-aware startup wiring, add decisions and style-guide indexes, and reconcile affected generated agent instructions with the new retrieval and learner boundaries. Do not leave an old hook that still injects all learnings registered alongside the new hook. Replace a proven managed hook automatically; otherwise show its focused migration diff and ask. If declined, report the remaining old behavior and incomplete v10 migration. Do not relabel legacy rules as active merely to pass validation.
 
-9. **Upgrade v10 learning governance.** Add the v11 task-evidence contract, learning disposition records, retrieval helper, evidence fields, validation/invalidation metadata, and evaluation fixtures described below. Existing learnings remain preserved and legacy files are not relabeled automatically. Record missing evidence metadata as a governance finding and report any unavailable native hook checks.
-
-10. **Record what you migrated** so the Phase 3 summary can report it (prior version, what was removed, folded, reconciled, or left).
+9. **Record what you migrated** so the Phase 3 summary can report it (prior version, what was removed, folded, reconciled, or left).
 
 The version marker itself is brought up to date in step 1.8.
 
@@ -105,7 +103,7 @@ Initial shape (populate `artifacts` from actual results, never leave placeholder
 ```json
 {
   "schema-version": 1,
-  "bootstrap-version": 11,
+  "bootstrap-version": 10,
   "update-source": {
     "enabled": true,
     "trusted": true,
@@ -126,9 +124,9 @@ Apply this upgrade algorithm before each write:
 4. `seeded-user-editable`, `adopted/legacy`, or unrecorded existing file: never alter it automatically. Propose a focused migration or ownership transfer for explicit authorization. An authorized transfer records its scope and actual post-migration baseline; it does not retroactively prove provenance. Even an unchanged seeded rule remains user-editable policy.
 5. Before offering removal of an obsolete feature, enumerate its manifest records and actual paths. Missing records or pre-v10 artifacts must be identified as legacy/unproven, not assumed bootstrap property. Never delete without the existing confirmation step. Remove ledger entries only after confirmed removal.
 
-On first upgrade from pre-v10, identify likely old artifacts, but record unknown provenance as `adopted/legacy`, with null template/digest values. A version marker or matching heading does not prove unchanged ownership. Exact comparison with a trusted historical template can support a proposed adoption; ask before transferring an existing file to managed ownership. Newly created v11 files get normal records. Existing unrelated user files need no ledger entry. Preserve an existing fork's source override. The default trusted source above is supplied by this explicit bootstrap work order; if its provenance is absent or untrusted, set `update-source` to null and make no request.
+On first upgrade from pre-v10, identify likely old artifacts, but record unknown provenance as `adopted/legacy`, with null template/digest values. A version marker or matching heading does not prove unchanged ownership. Exact comparison with a trusted historical template can support a proposed adoption; ask before transferring an existing file to managed ownership. Newly created v10 files get normal records. Existing unrelated user files need no ledger entry. Preserve an existing fork's source override. The default trusted source above is supplied by this explicit bootstrap work order; if its provenance is absent or untrusted, set `update-source` to null and make no request.
 
-Record version 11 only after the intended migration and verification finish; a declined required migration remains an explicitly partial upgrade with the prior installed version retained. Do not stamp success over unresolved bootstrap-managed errors. Legacy warnings can remain, listed individually. In Mode A, requests for migration confirmation apply only if existing content requires migration; the normal greenfield flow still asks no questions.
+Record version 10 only after the intended migration and verification finish; a declined required migration remains an explicitly partial upgrade with the prior installed version retained. Do not stamp success over unresolved bootstrap-managed errors. Legacy warnings can remain, listed individually. In Mode A, requests for migration confirmation apply only if existing content requires migration; the normal greenfield flow still asks no questions.
 
 ### 1.1 Detect state
 
@@ -326,8 +324,6 @@ Create these folders and put a small `README.md` in each describing what belongs
 
 ```
 .docs/
-├── evidence/     # Task evidence and learning dispositions, keyed by stable task ID
-├── evaluations/  # Optional baseline/candidate task fixtures and results (Mode B when evidence exists)
 ├── plans/        # Implementation plans, one file per task. Format: YYYY-MM-DD-<slug>.md
 ├── learnings/    # Evidence-backed lessons, updated or superseded without deletion. Format: YYYY-MM-DD-<slug>.md with frontmatter
 ├── rules/        # Hard rules too granular for AGENTS.md. Each file is one rule or one rule cluster
@@ -355,8 +351,6 @@ last-reviewed: "YYYY-MM-DD"
 ```
 
 Use statuses `active`, `candidate`, `superseded`. `scope` is a single relative slash-separated glob using letters, digits, `_`, `.`, `/`, `*`, `?`, `@`, `-`; `**` means universal. Reject absolute paths, empty segments, `.`/`..` segments, backslashes and unsupported syntax. Tags are separate YAML lists, used for topical retrieval. Use `priority: required | preferred | advisory`, `owner: user | bootstrap | learner` (or a documented project owner), `confidence: verified | supported | tentative`, and ISO `last-reviewed`. Resolve equal-level rule conflicts by priority, then specificity; if still conflicting, ask rather than using recency as authority. Existing metadata outside this schema is reported for review, not rewritten. Document this compact schema and scope grammar in the generated `.docs/rules/README.md`, and link to it from `.docs/learnings/README.md`, so the installed project retains the format without this prompt. Preserve existing index content under 1.0.6.
-
-Every eligible task also gets a record in `.docs/evidence/` keyed by a stable task ID. Its YAML frontmatter records `task-id`, `objective`, `outcome: succeeded | failed | blocked | abandoned`, `code-revision`, `retrieved-memory`, `applied-memory`, and `learning-disposition: proposed | none | pending`. Its body records acceptance criteria, attempts and observed results, user corrections, verification commands and results, evidence references, and remaining uncertainty. Do not store private chain-of-thought; store observable actions, outputs, and concise explanations. A learning must distinguish observation, inferred mechanism, recommended action, exceptions, evidence, validation, and invalidation conditions. `confidence: tentative` means an untested hypothesis, `supported` means direct evidence supports the recommendation within stated conditions, and `verified` means a relevant check or reproduction supports the specific claim.
 
 Never force this metadata onto legacy rules or learnings. Preserve them, report missing/invalid fields as legacy/unmanaged, and inspect their actual user-owned policy before relevant work. Absence of metadata does not revoke existing user policy or make it a candidate. Frontmatter status alone cannot authorize a promotion.
 
@@ -484,7 +478,7 @@ The only accepted remote fields are integer `version` and `details-url`, which m
 Write the following helper under the ownership contract:
 
 ```python
-"""Bootstrap v11: local context, task evidence, retrieval, report-only governance checks, passive cache refresh."""
+"""Bootstrap v10: local context, report-only governance checks, passive cache refresh."""
 import datetime as dt
 import hashlib
 import json
@@ -705,8 +699,6 @@ def verify():
                 findings.append('manifest: missing artifact ' + str(path))
             if record['ownership'] not in ('managed', 'merged', 'seeded-user-editable', 'adopted/legacy'):
                 findings.append('manifest: invalid ownership ' + str(path))
-            if record.get('digest') is not None and (not isinstance(record.get('digest'), str) or not re.fullmatch(r'sha256:[0-9a-f]{64}', record['digest'])):
-                findings.append('manifest: invalid digest ' + str(path))
             if record['ownership'] == 'merged' and not (record.get('blocks') or record.get('json-entries')):
                 findings.append('manifest: merged file lacks managed boundaries ' + str(path))
             if resolved.is_file() and ROOT in resolved.parents:
@@ -734,16 +726,6 @@ def verify():
                 missing = [key for key in required if key not in meta]
                 if missing:
                     report(path, 'missing metadata: ' + ', '.join(missing))
-                if folder == 'learnings':
-                    learning_required = ('date', 'tags', 'severity', 'applies-to', 'evidence-refs', 'validates-with', 'invalidates-when')
-                    learning_missing = [key for key in learning_required if key not in meta]
-                    if learning_missing:
-                        report(path, 'missing learning metadata: ' + ', '.join(learning_missing))
-                    if meta.get('severity') not in ('low', 'medium', 'high'):
-                        report(path, 'invalid learning severity')
-                    for key in ('tags', 'applies-to', 'evidence-refs', 'validates-with', 'invalidates-when'):
-                        if key in meta and not isinstance(meta[key], list):
-                            report(path, key + ' must be a list')
                 if meta.get('status') not in ('active', 'candidate', 'superseded'):
                     report(path, 'invalid status')
                 if not scope_ok(meta.get('scope')):
@@ -770,61 +752,6 @@ def verify():
                         report(path, 'high-severity learning overdue for review (90 days)')
             except Exception as error:
                 report(path, 'frontmatter invalid/unverified: ' + str(error))
-    for path in documents('plans'):
-        try:
-            meta, body = frontmatter(path)
-            required = ('status', 'created', 'updated', 'base', 'goal')
-            if meta is None:
-                report(path, 'missing plan metadata; resume state is unverified')
-                continue
-            missing = [key for key in required if key not in meta]
-            if missing:
-                report(path, 'missing plan metadata: ' + ', '.join(missing))
-            if meta.get('status') not in ('in-progress', 'done', 'abandoned'):
-                report(path, 'invalid plan status')
-            if not body.strip():
-                report(path, 'plan body is empty')
-        except Exception as error:
-            report(path, 'plan invalid/unverified: ' + str(error))
-    for path in documents('decisions'):
-        try:
-            meta, body = frontmatter(path)
-            required = ('date', 'status', 'scope', 'tags')
-            if meta is None:
-                report(path, 'missing decision metadata; preserved')
-                continue
-            missing = [key for key in required if key not in meta]
-            if missing:
-                report(path, 'missing decision metadata: ' + ', '.join(missing))
-            if meta.get('status') not in ('accepted', 'proposed', 'superseded'):
-                report(path, 'invalid decision status')
-            if not isinstance(meta.get('tags'), list):
-                report(path, 'decision tags must be a list')
-            if not body.strip():
-                report(path, 'decision body is empty')
-        except Exception as error:
-            report(path, 'decision invalid/unverified: ' + str(error))
-    for path in documents('evidence'):
-        try:
-            meta, body = frontmatter(path)
-            required = ('task-id', 'objective', 'outcome', 'code-revision', 'retrieved-memory', 'applied-memory', 'learning-disposition')
-            if meta is None:
-                report(path, 'missing task-evidence metadata; preserved')
-                continue
-            missing = [key for key in required if key not in meta]
-            if missing:
-                report(path, 'missing task-evidence metadata: ' + ', '.join(missing))
-            if meta.get('outcome') not in ('succeeded', 'failed', 'blocked', 'abandoned'):
-                report(path, 'invalid task-evidence outcome')
-            if meta.get('learning-disposition') not in ('proposed', 'none', 'pending'):
-                report(path, 'invalid learning disposition')
-            for key in ('retrieved-memory', 'applied-memory'):
-                if key in meta and not isinstance(meta[key], list):
-                    report(path, key + ' must be a list')
-            if not body.strip():
-                report(path, 'task-evidence body is empty')
-        except Exception as error:
-            report(path, 'task-evidence invalid/unverified: ' + str(error))
     agents_doc = ROOT / 'AGENTS.md'
     try:
         agents_text = read(agents_doc)
@@ -926,23 +853,13 @@ if __name__ == '__main__':
 
 Run `verify-governance.ps1` (Windows) or `sh .claude/hooks/verify-governance.sh` (non-Windows) in Phase 3. It is deterministic and report-only: no rewriting policy, activating candidates, refreshing digests, or requesting network access. It prints findings with artifact ownership; exit 0 means no findings, 1 means findings, 2 means verification could not complete. Legacy warnings are not silently converted into successful verification. Keep the full report in the bootstrap response rather than adding a permanent run log.
 
-The shared helper checks JSON/YAML parsing (including duplicate keys), unique active rule/learning IDs, statuses, scope grammar, review age, learning evidence/validation/invalidation fields, task-evidence schema, bidirectional agent registration with exact descriptions, known stale architecture claims, and the 16,000-character startup budget. The budget includes headers, plan summaries, warnings, and any cached notice. If exceeded, the hook emits a small explicit overflow message rather than a partial rule body; agents must retrieve universal policy and plan state before work. Report requested and emitted counts and largest contributing files, without pruning user policy. Never inject learnings just because they are high-severity.
+The shared helper checks JSON/YAML parsing (including duplicate keys), unique active rule/learning IDs, statuses, scope grammar, review age, bidirectional agent registration with exact descriptions, known stale architecture claims, and the 16,000-character startup budget. The budget includes headers, plan summaries, warnings, and any cached notice. If exceeded, the hook emits a small explicit overflow message rather than a partial rule body; agents must retrieve universal policy and plan state before work. Report requested and emitted counts and largest contributing files, without pruning user policy. Never inject learnings just because they are high-severity.
 
 For each newly generated agent table row, set `When to call` to its exact frontmatter `description`, with whitespace collapsed and `|` escaped as `&#124;`. Keep `Output` concise. The shorter rows in the skeleton illustrate roles; expand their descriptions from the actual definitions when generating. This gives the verifier a deterministic accuracy check. Existing user-authored paraphrases remain unchanged and are reported for human review. The bootstrap also compares the routing heuristics and agent bodies manually; a text check cannot establish semantic accuracy.
 
 During Phase 3 additionally validate the installed settings and agent definitions against the actual Claude Code version: inspect official documentation and run Claude's available agent-list/validation facility, and the native dispatch smoke check where available. Parsing alone does not validate all Claude settings fields or arbitrary user extensions. Confirm the registered hook commands exist, their matcher/async behavior is correct, and the `CLAUDE.md` pointer contains no duplicated policy. Scan generated content for other stale topology claims beyond the helper's known patterns; flag uncertain legacy wording instead of editing it. A deliberately superseded historical statement may be reported as a contextual false positive, with its path and rationale, never silently ignored.
 
 Verified syntax references: [Claude Code hooks](https://code.claude.com/docs/en/hooks) (SessionStart stdin sources, command hooks, `async`), [subagents](https://code.claude.com/docs/en/sub-agents) (YAML definitions, `model: inherit`), and [settings](https://code.claude.com/docs/en/settings). Recheck these for the target installation; unavailable native verification must be listed as not run.
-
-### 1.5.7 Create the local retrieval helper and evaluation fixtures
-
-Create a small local helper under `.claude/hooks/` or `.claude/tools/` that accepts a task description, affected paths, intended actions, packages, symbols, error signatures, and agent role. It must select active policy deterministically by scope and action, then rank advisory learnings, decisions, examples, and style guidance by applicability, evidence, and freshness. It must return each selected item with its ID, revision, kind, selection reason, applicability, confidence, and evidence references. Record considered, selected, applied, and rejected IDs in the task-evidence record. Begin with parsed metadata and lexical matching; do not add embeddings unless retrieval fixtures demonstrate that lexical matching misses relevant knowledge.
-
-Create disposable evaluation fixtures for at least: a relevant lesson that should be retrieved, a similar but out-of-scope lesson that should be excluded, a missing lesson, a stale dependency, a duplicate lesson, and a conflicting rule. Retrieval must report incomplete coverage and unresolved conflicts rather than guessing.
-
-In Mode B, create an evaluation index under `.docs/evaluations/` only when the repository has real task examples or verification fixtures. Start with representative failures and successes, aiming over time for roughly 20-40 tasks rather than inventing synthetic coverage during bootstrap. Keep held-out variants separate from examples used to write a lesson. Compare baseline and candidate behavior with comparable model, tools, environment, and budget; measure correctness, regressions, latency, and cost per successful task.
-
-The learner may propose retrieval or agent changes, but activation requires a baseline-versus-candidate comparison on the relevant fixture set. The evaluation specification and fixtures are managed separately from the learner's writable proposal files.
 
 ### 1.6 Create the core agents
 
@@ -988,13 +905,13 @@ model: inherit
 You are the implementer. Your job is to execute a plan that already exists.
 
 ## Process
-1. Read the plan you have been given (path to file in .docs/plans/). Confirm `status: in-progress` in frontmatter. Locate or create the matching task-evidence record under `.docs/evidence/` before changing code.
+1. Read the plan you have been given (path to file in .docs/plans/). Confirm `status: in-progress` in frontmatter.
 2. Read AGENTS.md (the project instructions; CLAUDE.md just points to it) and active universal plus relevant scoped rules, learnings, decisions, and style-guide sections, especially `.docs/rules/plan-execution.md` and `.docs/rules/verification.md`.
 3. Find the first unchecked `- [ ]` task in the first milestone that has any. That is your current task.
 4. Execute that task. After finishing it:
    - Flip `- [ ]` to `- [x]` in the plan file. Do this BEFORE starting the next task, not at the end of the session.
    - Update the `updated:` field in frontmatter to today's date.
-   - If the task changed code, run the verification commands from `.docs/rules/verification.md`. Record commands, results, code revision, and relevant output in the task-evidence record. If that file does not exist or lists no commands, do not invent any.
+   - If the task changed code, run the verification commands from `.docs/rules/verification.md`. If that file does not exist or lists no commands, do not invent any.
 5. Move to the next unchecked task. Repeat step 4.
 6. If you make a decision that deviates from the plan (different approach, extra task discovered, milestone split), append a Log entry like `- YYYY-MM-DD HH:MM <short note>` and edit the milestone/task list to reflect reality. Do this in the same edit.
 7. When all tasks across all milestones are checked, flip `status:` from `in-progress` to `done`, append a final Log entry, and append a short `## Completion` section summarizing what was built.
@@ -1045,7 +962,7 @@ You are the reviewer. Your job is to audit completed work against the plan and t
 ---
 name: researcher
 description: Use when you need codebase context (where is X defined? what calls Y?) or external context (library docs, API behavior, recent changes) before making a decision. Writes findings to .docs/research/.
-tools: Read, Write, Grep, Glob, WebFetch, WebSearch, Bash
+tools: Read, Grep, Glob, WebFetch, WebSearch, Bash
 model: inherit
 ---
 
@@ -1080,12 +997,12 @@ model: inherit
 You are the debugger. Your job is to find root causes, not patch symptoms.
 
 ## Process
-1. **Reproduce.** Run whatever the user ran. Capture exact output in the task-evidence record. If you cannot reproduce, say so and stop.
+1. **Reproduce.** Run whatever the user ran. Capture exact output. If you cannot reproduce, say so and stop.
 2. **Isolate.** Narrow the failure to the smallest input that triggers it. Bisect if needed.
 3. **Hypothesize.** State what you think is wrong and why, in one paragraph.
 4. **Verify.** Run a targeted check that proves or disproves the hypothesis (read a specific file, run a specific command, add a temporary log).
 5. **Repeat 3-4** until the root cause is identified with evidence.
-6. **Propose a repair plan.** Describe the change and why it addresses the root cause, not the symptom. If the repair is non-trivial, write a minimal in-progress plan for the implementer; do not route directly to an implementer that requires a plan when none exists.
+6. **Propose a fix.** Describe the change and why it addresses the root cause, not the symptom.
 
 ## Hard rules
 - Never propose a fix until step 5 has identified a root cause with evidence.
@@ -1104,14 +1021,13 @@ tools: Read, Edit, Write, Grep, Glob, Bash
 model: inherit
 ---
 
-You are the learner. Your job is to make sure the project gets smarter over time. You receive an explicit task-evidence record; do not infer the recent session from Git history alone.
+You are the learner. Your job is to make sure the project gets smarter over time.
 
 ## Process
-1. **Read the task evidence.** Locate the task-evidence record supplied by the caller under `.docs/evidence/`. Separate observed facts, inferred causes, and untested hypotheses. If evidence is missing, preserve the uncertainty and do not upgrade confidence.
-2. **Retrieve related knowledge.** Use the local retrieval helper described in `AGENTS.md`, matching affected paths, intended actions, packages, symbols, and error signatures. Record the IDs considered, selected, applied, and rejected in the evidence record. Diagnose whether any failure came from missing knowledge, retrieval, application, execution, verification, or routing.
-3. **Reflect on the task.** What went wrong? What surprised you? What did the user correct? What worked despite looking risky? What constraint was discovered? Do not treat a successful workaround as a verified explanation without supporting evidence.
-4. **Filter ruthlessly.** Most tasks produce zero learnings. A learning is only worth writing if it would change behavior next time and has a defined trigger. "We used React" is not a learning. "The generated client is stale after schema changes until the codegen command runs" is a useful candidate.
-5. **Write the learning** to `.docs/learnings/YYYY-MM-DD-<slug>.md` with this frontmatter:
+1. **Read existing learnings.** Glob `.docs/learnings/*.md` and read enough to know what is already captured. Do not duplicate. Check recent git log (`git log --oneline -20`) for session context if helpful.
+2. **Reflect on the recent session.** What went wrong? What surprised you? What did the user correct? What worked despite looking risky? What constraint was discovered?
+3. **Filter ruthlessly.** Most sessions produce zero learnings. A learning is only worth writing if it would change behavior next time. "We used React" is not a learning. "shadcn's Dialog has a bug with controlled state on iOS Safari and we worked around it with X" is a learning.
+4. **Write the learning** to `.docs/learnings/YYYY-MM-DD-<slug>.md` with this frontmatter:
    ```
    ---
    id: unique-learning-slug
@@ -1125,17 +1041,12 @@ You are the learner. Your job is to make sure the project gets smarter over time
    tags: [tag1, tag2]
    severity: low | medium | high
    applies-to: [path/glob/or/agent-name]
-   evidence-refs: [path-or-command-result]
-   validates-with: [command-or-fixture]
-   invalidates-when: [dependency-or-behavior-change]
    ---
    ```
-   Body: Trigger, Observation, Evidence, Mechanism (including uncertainty), Action, Exceptions, Validation, and Invalidation. 8-40 lines. Use `severity: high` sparingly. Retrieve it by scope, tags, affected paths, and actions; never inject it indefinitely at startup. Review active learnings when relevant and when a dependency, referenced path, validation check, or observed behavior changes. `last-reviewed` records inspection; it does not renew evidence unless validation was run. An overdue item remains visible for review, not silently authoritative or automatically expired. High means "violating this breaks the project or repeats an expensive mistake."
-6. **Propose a candidate rule** if the lesson warrants binding policy. Write a new `.docs/rules/<short-name>.md` with the governance metadata and `status: candidate`, evidence, and proposed scope. Never silently activate a new or substantively changed binding rule. Promotion and substantive modification of active user-owned rules require explicit user authorization or a user-requested governance-maintenance pass. Record that authorization in the rule or a linked decision. Do not overwrite the existing active rule to stage a candidate change.
-7. **Prefer stronger artifacts.** If the lesson is reproducible, propose a regression test. If it is mechanically detectable, propose a lint/static check. If it is a repeated command sequence, propose a validated script or skill. Keep the prose learning for context and exceptions.
-8. **Validate behavior changes before activation.** Any change to agent instructions, routing, retrieval, or active conventions requires a focused baseline-versus-candidate check. Define the expected behavioral difference before running it, check for regressions, retain a reversible revision, and do not weaken the evaluation to make the candidate pass.
-9. **Repair generated agent documentation and bootstrap-managed artifacts** if a learning reveals an instruction flaw. Respect recorded ownership and preserve user-owned content. Routine learner repairs of managed instructions are allowed; bootstrap replacement of those now-modified files still requires a migration diff. Never disguise a new binding rule as an agent repair, and never refresh the manifest baseline outside a bootstrap run.
-10. **Sync agent documentation.** Any time you add a new agent, remove an agent, or change an agent's `description` field, `tools`, `model`, or core behavior, you MUST also update:
+   Body: what happened, why it matters, what to do next time. 5-30 lines. Use `severity: high` sparingly. Retrieve it by scope/tags; never inject it indefinitely at startup. Review high-severity active learnings when relevant and at least every 90 days: reconfirm with fresh evidence and update `last-reviewed`, downgrade, or supersede. An overdue item remains visible for review, not silently authoritative or automatically expired. High means "violating this breaks the project or repeats an expensive mistake."
+5. **Propose a candidate rule** if the lesson warrants binding policy. Write a new `.docs/rules/<short-name>.md` with the governance metadata and `status: candidate`, evidence, and proposed scope. Never silently activate a new or substantively changed binding rule. Promotion and substantive modification of active user-owned rules require explicit user authorization or a user-requested governance-maintenance pass. Record that authorization in the rule or a linked decision. Do not overwrite the existing active rule to stage a candidate change.
+6. **Repair generated agent documentation and bootstrap-managed artifacts** if a learning reveals an instruction flaw. Respect recorded ownership and preserve user-owned content. Routine learner repairs of managed instructions are allowed; bootstrap replacement of those now-modified files still requires a migration diff. Never disguise a new binding rule as an agent repair, and never refresh the manifest baseline outside a bootstrap run.
+7. **Sync agent documentation.** Any time you add a new agent, remove an agent, or change an agent's `description` field, `tools`, `model`, or core behavior, you MUST also update:
    - The **Available agents** table in `AGENTS.md`
    - The **Routing heuristics** subsection in `AGENTS.md`
    `AGENTS.md` is the single source of truth; `CLAUDE.md` is only a pointer to it and needs no update. This is not optional. An agent change without a doc update is an incomplete change. Verify the table row and routing line for that agent are present and accurate before you finish.
@@ -1158,7 +1069,7 @@ Write `.claude/commands/learn.md`. Skip if it exists.
 description: Invoke the learner agent to distill lessons from the recent session into .docs/learnings/
 ---
 
-Invoke the learner subagent now. First locate or create the current task-evidence record under `.docs/evidence/`; record observable attempts, user corrections, verification results, retrieved/applied memory IDs, and remaining uncertainty. Have the learner use that record to distill any genuine lessons and append them to `.docs/learnings/`. It may repair bootstrap-managed agent documentation within ownership boundaries. It may propose binding rules as candidates; activating or substantively changing binding policy requires the authorization described in AGENTS.md. It may propose style-guide changes, with repeated evidence or user confirmation required to change an established convention. Any behavioral agent, routing, or retrieval change needs a baseline-versus-candidate check before activation.
+Invoke the learner subagent now. Have it reflect on the recent session, distill any genuine lessons, and append them to `.docs/learnings/`. It may repair bootstrap-managed agent documentation within ownership boundaries. It may propose binding rules as candidates; activating or substantively changing binding policy requires the authorization described in AGENTS.md. It may propose style-guide changes, with repeated evidence or user confirmation required to change an established convention.
 ```
 
 ### 1.8 Write `AGENTS.md` (canonical) and the `CLAUDE.md` pointer
@@ -1169,14 +1080,14 @@ Invoke the learner subagent now. First locate or create the current task-evidenc
 
 **Write the `CLAUDE.md` pointer stub** with the exact content shown below, subject to 1.0.6 and preservation of existing instructions. If `CLAUDE.md` already exists and is a full instructions file (it contains the routing index rather than a pointer), do not silently overwrite it: fold anything `AGENTS.md` is missing into `AGENTS.md` first, then replace `CLAUDE.md` with the stub. If `CLAUDE.md` is already the current stub, leave it.
 
-**Version marker.** Both files carry a `> Bootstrapped by nohell v11` line directly under the H1 title. When creating them, include it as shown. When updating existing files under 1.0.6, and only after successful verification: if a `> Bootstrapped by nohell v<N>` line already exists, rewrite it to the current version; if none exists, insert it directly under the H1 title. Exactly one such line per file.
+**Version marker.** Both files carry a `> Bootstrapped by nohell v10` line directly under the H1 title. When creating them, include it as shown. When updating existing files under 1.0.6, and only after successful verification: if a `> Bootstrapped by nohell v<N>` line already exists, rewrite it to the current version; if none exists, insert it directly under the H1 title. Exactly one such line per file.
 
 #### `CLAUDE.md` pointer stub
 
 ```markdown
 # Project Instructions for AI Agents
 
-> Bootstrapped by nohell v11
+> Bootstrapped by nohell v10
 
 The project instruction entry point is `AGENTS.md`, imported below via `@AGENTS.md`; it routes to authoritative rule files and relevant memory. The import loads the full content into context automatically: do NOT Read `AGENTS.md` again manually. This file is intentionally a pointer only; never edit it during ordinary project work and never duplicate content here. Bootstrap marker/pointer migrations follow the ownership contract. Edit routing and stable facts in `AGENTS.md`, and rule bodies in their own `.docs/rules/` files.
 
@@ -1188,7 +1099,7 @@ The project instruction entry point is `AGENTS.md`, imported below via `@AGENTS.
 ````markdown
 # Project Instructions for AI Agents
 
-> Bootstrapped by nohell v11
+> Bootstrapped by nohell v10
 
 This file (`AGENTS.md`) is the routing index for any AI agent working in this repo, and the single source of truth for project instructions. `CLAUDE.md` is a thin pointer that imports this file so Claude Code loads it automatically; this file owns routing and stable project facts, while individual rule files own their full rule content.
 
@@ -1204,7 +1115,7 @@ Repository-level precedence (within the host's system and organization policies)
 6. AGENTS.md routing and stable project overview.
 7. Research notes.
 
-This file is the authoritative entry point for instruction topology, routing, and stable facts. `.docs/rules/` files hold their own authoritative rule bodies; link to them rather than duplicating long rules. `candidate` and `superseded` entries are not active policy. Scope, priority, owner, confidence, and review date guide retrieval and review; they do not grant authority to promote a rule. Resolve same-level conflicts by priority then specificity; surface unresolved conflicts. Preserve legacy user policy and flag missing metadata instead of silently discarding it. Task evidence lives in `.docs/evidence/`; it records observable execution facts and learning dispositions, not private reasoning.
+This file is the authoritative entry point for instruction topology, routing, and stable facts. `.docs/rules/` files hold their own authoritative rule bodies; link to them rather than duplicating long rules. `candidate` and `superseded` entries are not active policy. Scope, priority, owner, confidence, and review date guide retrieval and review; they do not grant authority to promote a rule. Resolve same-level conflicts by priority then specificity; surface unresolved conflicts. Preserve legacy user policy and flag missing metadata instead of silently discarding it.
 
 Rules constrain work. Style guides express preferred reusable conventions. Learnings capture evidence-backed contextual lessons. Decisions capture settled choices and rationale. Research supports investigation and can go stale. Style guides and decisions inform choices within active constraints; they cannot override a current user request or a rule. Existing project-local guidance takes precedence over newly inferred style guidance.
 
@@ -1229,10 +1140,6 @@ The hook covers session start. During work, re-read selectively:
 - Before an action a specific rule governs, re-open that one rule file, not the whole directory.
 - Do not re-read this file or all of `.docs/rules/` per task. Once per session is the contract.
 
-### Retrieval contract
-
-Use the local retrieval helper before governed work with the task description, affected paths, intended actions, packages, symbols, error signatures, and agent role. Select active policy deterministically; rank advisory learnings, decisions, examples, and style guidance by applicability, evidence, and freshness. Return the selected IDs and the reason each was selected. Record considered, selected, applied, and rejected IDs in the matching `.docs/evidence/` record. If required policy is missing, conflicting, stale, or retrieval is incomplete, surface that condition instead of guessing.
-
 ## Resume protocol (check before starting any new work)
 
 Sessions get interrupted. The session-start hook surfaces any plan with `status: in-progress`. When one exists:
@@ -1256,8 +1163,6 @@ See `.docs/rules/plan-execution.md` for the full plan format and execution proto
 └── hooks/               context hook, passive updater, governance verifier
 
 .docs/
-├── evidence/            task evidence and learning dispositions, keyed by stable task ID
-├── evaluations/         optional baseline/candidate task fixtures and results
 ├── plans/               implementation plans, one per task
 ├── learnings/           contextual lessons, updated or superseded without deletion
 ├── rules/               hard rules, more granular than this file
@@ -1289,7 +1194,7 @@ Project agents in `.claude/agents/` register natively: dispatch them by name via
 
 - "Build me X" / "let's add feature X" of any non-trivial size: `planner` -> `implementer` -> `reviewer` -> `learner`. The planner writes a milestone+checkbox plan to `.docs/plans/`; the implementer ticks boxes live as it goes.
 - "Continue / resume / pick up where we left off": find the `status: in-progress` plan in `.docs/plans/`, hand it to `implementer`.
-- "Fix this bug": `debugger` -> repair plan -> `implementer` -> `reviewer` when risk warrants -> `learner`.
+- "Fix this bug": `debugger` -> `implementer` (to apply the fix) -> `learner`.
 - "Where is X / how does Y work": `researcher`.
 - "I just corrected you / that detour was painful / we discovered a constraint": invoke `learner` immediately, or run `/learn`.
 
@@ -1297,14 +1202,14 @@ If the user says any of "learn from that", "remember this", "don't make that mis
 
 ## Self-improvement loop (this is core, do not skip it)
 
-After completing, abandoning, or being blocked on any eligible task, create or update its task-evidence record and give it a learning disposition. Invoke the `learner` subagent when the disposition is `pending` or when the user explicitly requests learning. Non-trivial means at least one of:
+After completing any non-trivial task, invoke the `learner` subagent. Non-trivial means at least one of:
 - Involved a bug fix
 - Made an architecture or design decision
 - Surfaced a constraint that was not previously documented
 - Cost time on a wrong turn
 - Was corrected by the user
 
-The learner can write, update, and supersede learnings and repair bootstrap-managed documentation within ownership boundaries. It may propose candidate rules and style-guide changes. File-write permissions do not authorize policy promotion or substantive changes to active user-owned rules; those require explicit user authorization or a user-requested governance-maintenance pass. Established conventions require repeated evidence or user confirmation to change. Any agent instruction, routing, or retrieval change requires a baseline-versus-candidate check before activation. Prefer regression tests, lint rules, scripts, and skills over prose when a lesson can be made executable. The learner never refreshes bootstrap manifest digests.
+The learner can write, update, and supersede learnings and repair bootstrap-managed documentation within ownership boundaries. It may propose candidate rules and style-guide changes. File-write permissions do not authorize policy promotion or substantive changes to active user-owned rules; those require explicit user authorization or a user-requested governance-maintenance pass. Established conventions require repeated evidence or user confirmation to change. The learner never refreshes bootstrap manifest digests.
 
 If you finish a task and decide it does not warrant invoking the learner, that is fine, but the default is to invoke it.
 
@@ -1452,7 +1357,7 @@ Finalize the manifest from actual created/migrated artifacts, including current 
 
 Exercise the hook launchers with JSON stdin for `startup`, `resume`, `clear`, `compact`, and `fork`. Confirm context contains active universal rules and plan summaries only, and cached update notices appear only for `startup`. Check requested and emitted character counts against 16,000; test an oversized rule to prove the explicit overflow fallback works. Use disposable fixtures, not edits to real policy. Check the updater with an isolated external cache and mocked transport: newer/equal/older versions, warm/expired caches, opt-out, absent trust, malformed/oversized responses, redirect rejection, offline errors, and a slow response. No non-startup invocation may contact the network. Confirm the updater has no stdout/stderr, returns within its own deadline, and never changes the project worktree. Do not claim these checks passed merely because the code looks correct.
 
-Review the final migration diff for preserved user content, duplicate hooks/sections, and any contradictory v9/v10 retrieval or learner instructions. Verify task-evidence schema, retrieval fixtures, learning metadata, and baseline-versus-candidate evaluation behavior. Errors in newly generated/managed artifacts block a successful v11 stamp; unresolved legacy warnings or unavailable native checks must be explicitly listed with their consequences. After an otherwise successful run, update owned version markers and the installed manifest version together, then rerun verification against those final files.
+Review the final migration diff for preserved user content, duplicate hooks/sections, and any contradictory v9 retrieval or learner instructions. Errors in newly generated/managed artifacts block a successful v10 stamp; unresolved legacy warnings or unavailable native checks must be explicitly listed with their consequences. After an otherwise successful run, update owned version markers and the installed manifest version together, then rerun verification against those final files.
 
 ### 3.4 Final summary to user
 
@@ -1461,7 +1366,7 @@ Print a concise summary of what was created or modified, grouped by:
 - **Modified** (existing files updated)
 - **Skipped** (existing files left untouched)
 
-State which mode ran (A greenfield or B existing repo) and whether this repo was successfully marked `Bootstrapped by nohell v11` or remains a partial upgrade at its prior version. In Mode B, list the project-tailored agents you generated and one line each on what they do. In Mode A, state that no context-gathering or tailored agents ran because the project is greenfield, and that they will be worth revisiting once there is a real codebase.
+State which mode ran (A greenfield or B existing repo) and whether this repo was successfully marked `Bootstrapped by nohell v10` or remains a partial upgrade at its prior version. In Mode B, list the project-tailored agents you generated and one line each on what they do. In Mode A, state that no context-gathering or tailored agents ran because the project is greenfield, and that they will be worth revisiting once there is a real codebase.
 
 If step 1.0.5 ran (a prior bootstrap was detected), add a **Migration** line: the prior version detected and what each migration did (Obsidian removal, CLAUDE.md stub-ified, per-task reread section replaced, hook installed, stale seeded rules reconciled, workaround learning superseded, model pins removed), or that the user declined a removal and the artifacts remain.
 

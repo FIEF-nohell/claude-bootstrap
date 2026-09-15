@@ -65,6 +65,8 @@ When run, it produces (or merges into existing files):
     commands/
       learn.md                 the /learn slash command
   .docs/
+    evidence/                  task evidence and learning dispositions keyed by stable task ID
+    evaluations/               optional baseline/candidate fixtures and results for existing repos
     plans/                     implementation plans, one per task (frontmatter carries a base sha for exact review diffs)
     learnings/                 contextual lessons, updated or superseded without deletion
     rules/                     hard rules, more granular than AGENTS.md (seeded: plan-execution, agent-docs-sync, docs-current-state-only; Phase 3 adds verification)
@@ -90,20 +92,24 @@ The full agent definitions live inside the prompt itself.
 
 ## Self-improvement loop
 
-The bootstrapped project gets smarter over time through two triggers:
+The bootstrapped project gets smarter over time through task evidence and two learner triggers:
 
-1. **Convention.** `AGENTS.md` instructs the main agent to invoke the `learner` after any non-trivial task. Natural-language requests like "learn from that" or "remember this" route to the learner.
+1. **Convention.** `AGENTS.md` creates a task-evidence record for eligible work and gives it a learning disposition. Natural-language requests like "learn from that" or "remember this" route to the learner with that evidence record.
 2. **Slash command.** `/learn` invokes the learner manually for mid-session reflection.
 
 The `learner` has file-write permission via `.claude/settings.json`, but policy authority is separate. It may maintain learnings and repair bootstrap-managed documentation. Activating a new binding rule or substantively changing active user-owned policy requires explicit user authorization or a user-requested governance-maintenance pass. Established style conventions change only with repeated evidence or user confirmation. Agent edits must update the agent table and routing in `AGENTS.md` in the same change.
 
-New rules and learnings carry identity, status, scope, priority, owner, confidence, and review-date metadata. Legacy files remain intact and missing metadata is reported. High-severity learnings are reviewed when relevant and at least every 90 days. A deterministic verifier checks metadata, agent registrations, known stale topology claims, parsing, and the startup budget; semantic routing and native Claude behavior also receive explicit verification.
+New rules and learnings carry identity, status, scope, priority, owner, confidence, review-date, evidence, validation, and invalidation metadata. Legacy files remain intact and missing metadata is reported. Retrieval records considered, selected, applied, and rejected memory IDs. Agent, routing, and retrieval changes require a baseline-versus-candidate evaluation before activation. A deterministic verifier checks metadata, agent registrations, known stale topology claims, parsing, retrieval fixtures, and the startup budget; semantic routing and native Claude behavior also receive explicit verification.
 
 ## Bootstrap update details
 
 ### v10
 
-Adds memory governance, a report-only verifier, an ownership ledger, passive update notices, and evidence-based style-guide routing. `AGENTS.md` remains the instruction entry point; individual rule files own their full rule content. `.docs/styleguide/README.md` starts as a small index, with detailed sections added only when project evidence justifies them.
+Adds memory governance, a report-only verifier, an ownership ledger, passive update notices, and evidence-based style-guide routing. `AGENTS.md` remains the instruction entry point; individual rule files own their full rule content. `.docs/styleguide/README.md` starts as a small index, with detailed sections added only when project evidence justifies it.
+
+### v11
+
+Adds explicit task-evidence records, learning dispositions, scoped retrieval guidance, evidence and invalidation metadata for learnings, behavioral evaluation requirements for agent changes, and evaluation fixtures for retrieval and governance. The learner receives an evidence record instead of inferring the session from Git history, and repeated discoveries are directed toward regression tests, lint checks, scripts, and skills where those artifacts provide stronger reuse than prose.
 
 [`bootstrap-release.json`](bootstrap-release.json) exposes integer `version` and `details-url`. Generated projects default to the [raw metadata on master](https://raw.githubusercontent.com/FIEF-nohell/claude-bootstrap/master/bootstrap-release.json); forks can override the trusted metadata and details URLs in their local manifest. Keep the details URL stable across releases and update this section with release information.
 
@@ -134,4 +140,4 @@ The full versioning workflow is in `CLAUDE.md`. Short version: archive first, ed
 
 ## Status
 
-Pre-1.0. Iterating. The `learner`-driven self-improvement loop has not yet had time to refine the agents through real use, so expect rough edges. Feedback welcome.
+Pre-1.0. Iterating. V11 adds the evidence and evaluation contracts needed to measure whether the `learner`-driven self-improvement loop actually improves later work. Feedback welcome.
