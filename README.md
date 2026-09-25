@@ -111,6 +111,10 @@ Adds memory governance, a report-only verifier, an ownership ledger, passive upd
 
 Adds explicit task-evidence records, learning dispositions, scoped retrieval guidance, evidence and invalidation metadata for learnings, behavioral evaluation requirements for agent changes, and evaluation fixtures for retrieval and governance. The learner receives an evidence record instead of inferring the session from Git history, and repeated discoveries are directed toward regression tests, lint checks, scripts, and skills where those artifacts provide stronger reuse than prose.
 
+### v12
+
+Fixes the startup permission warning every v11-and-earlier project printed on every Claude Code launch: `.claude/settings.json` carried paired `Edit(<glob>)` / `Write(<glob>)` allow rules for the same globs (`.claude/agents/**`, `.claude/commands/**`, `.claude/hooks/**`, `.docs/**`), and `Write(...)` is not matched by the harness's file-permission checks, so each one printed `Permission allow rule ... is not matched by file permission checks`. The redundant `Write(...)` entries are removed from the template; `Edit(...)` already covers both editing and writing. A re-bootstrap of an existing v11-or-earlier project applies the same fix to its committed `.claude/settings.json` (step 1.0.5, item 10).
+
 [`bootstrap-release.json`](bootstrap-release.json) exposes integer `version` and `details-url`. Generated projects default to the [raw metadata on master](https://raw.githubusercontent.com/FIEF-nohell/claude-bootstrap/master/bootstrap-release.json); forks can override the trusted metadata and details URLs in their local manifest. Keep the details URL stable across releases and update this section with release information.
 
 Only a fresh startup triggers an asynchronous check. Results, including failures, are cached for 24 hours outside the repository. Startup reads the cache without waiting for the network, so a cold-cache result normally appears on the next fresh startup. Requests have a 2.5-second total deadline; failures are silent. Notices contain only version information and the trusted details URL. No update is downloaded or installed. Set `CLAUDE_BOOTSTRAP_UPDATE_CHECK=0`, or set `update-source.enabled` to `false` in the manifest, to opt out. No trusted source means no request.
@@ -140,4 +144,4 @@ The full versioning workflow is in `CLAUDE.md`. Short version: archive first, ed
 
 ## Status
 
-Pre-1.0. Iterating. V11 adds the evidence and evaluation contracts needed to measure whether the `learner`-driven self-improvement loop actually improves later work. Feedback welcome.
+Pre-1.0. Iterating. V11 adds the evidence and evaluation contracts needed to measure whether the `learner`-driven self-improvement loop actually improves later work. V12 fixes the startup permission warning from redundant `Write(...)` allow rules. Feedback welcome.

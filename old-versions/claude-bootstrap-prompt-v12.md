@@ -12,7 +12,7 @@ This prompt sets up the Claude Code environment: git hygiene, permissions, a `.d
 
 **`AGENTS.md` is the single source of truth for project instructions.** It holds instruction topology, the routing index, rule links, agent table, and stable project facts. Individual `.docs/rules/` files are authoritative for the full content of their own rules; do not duplicate long rule bodies here. `CLAUDE.md` is a thin pointer that imports `AGENTS.md` via the `@AGENTS.md` include syntax, so Claude Code loads the full content automatically without a second manual read. Routing and project-overview edits land in `AGENTS.md`; rule-body edits land in their own files; the `CLAUDE.md` stub never needs content updates.
 
-**This bootstrap is `nohell v12`.** Treat that exact string as the current version throughout this prompt. It gets stamped into the generated `AGENTS.md` (and the `CLAUDE.md` pointer stub) as a `Bootstrapped by nohell v12` marker, so any future run can tell which version last touched this repo and migrate accordingly (see step 1.0.5). Whenever this prompt is revised to a new version, bump the number here, in the step 1.8 marker line, and in the migration logic in step 1.0.5.
+**This bootstrap is `nohell v11`.** Treat that exact string as the current version throughout this prompt. It gets stamped into the generated `AGENTS.md` (and the `CLAUDE.md` pointer stub) as a `Bootstrapped by nohell v11` marker, so any future run can tell which version last touched this repo and migrate accordingly (see step 1.0.5). Whenever this prompt is revised to a new version, bump the number here, in the step 1.8 marker line, and in the migration logic in step 1.0.5.
 
 Design principles (introduced in v8, they explain several changes from v7):
 
@@ -92,9 +92,7 @@ If none of these are present, this is a fresh bootstrap: skip the rest of 1.0.5 
 
 9. **Upgrade v10 learning governance.** Add the v11 task-evidence contract, learning disposition records, retrieval helper, evidence fields, validation/invalidation metadata, and evaluation fixtures described below. Existing learnings remain preserved and legacy files are not relabeled automatically. Record missing evidence metadata as a governance finding and report any unavailable native hook checks.
 
-10. **Fix redundant Write() permission rules (v11 and earlier).** In `.claude/settings.json`, `permissions.allow` may carry paired `Edit(<glob>)` / `Write(<glob>)` entries for the same glob (agents, commands, hooks, docs). `Write(...)` is not matched by the harness's file-permission checks, so it is dead weight and the harness prints a startup warning for each one. Remove every `Write(...)` entry that has a matching `Edit(...)` entry for the same glob; keep the `Edit(...)` entry, which already covers both editing and writing.
-
-11. **Record what you migrated** so the Phase 3 summary can report it (prior version, what was removed, folded, reconciled, or left).
+10. **Record what you migrated** so the Phase 3 summary can report it (prior version, what was removed, folded, reconciled, or left).
 
 The version marker itself is brought up to date in step 1.8.
 
@@ -128,7 +126,7 @@ Apply this upgrade algorithm before each write:
 4. `seeded-user-editable`, `adopted/legacy`, or unrecorded existing file: never alter it automatically. Propose a focused migration or ownership transfer for explicit authorization. An authorized transfer records its scope and actual post-migration baseline; it does not retroactively prove provenance. Even an unchanged seeded rule remains user-editable policy.
 5. Before offering removal of an obsolete feature, enumerate its manifest records and actual paths. Missing records or pre-v10 artifacts must be identified as legacy/unproven, not assumed bootstrap property. Never delete without the existing confirmation step. Remove ledger entries only after confirmed removal.
 
-On first upgrade from pre-v10, identify likely old artifacts, but record unknown provenance as `adopted/legacy`, with null template/digest values. A version marker or matching heading does not prove unchanged ownership. Exact comparison with a trusted historical template can support a proposed adoption; ask before transferring an existing file to managed ownership. Newly created v12 files get normal records. Existing unrelated user files need no ledger entry. Preserve an existing fork's source override. The default trusted source above is supplied by this explicit bootstrap work order; if its provenance is absent or untrusted, set `update-source` to null and make no request.
+On first upgrade from pre-v10, identify likely old artifacts, but record unknown provenance as `adopted/legacy`, with null template/digest values. A version marker or matching heading does not prove unchanged ownership. Exact comparison with a trusted historical template can support a proposed adoption; ask before transferring an existing file to managed ownership. Newly created v11 files get normal records. Existing unrelated user files need no ledger entry. Preserve an existing fork's source override. The default trusted source above is supplied by this explicit bootstrap work order; if its provenance is absent or untrusted, set `update-source` to null and make no request.
 
 Record version 11 only after the intended migration and verification finish; a declined required migration remains an explicitly partial upgrade with the prior installed version retained. Do not stamp success over unresolved bootstrap-managed errors. Legacy warnings can remain, listed individually. In Mode A, requests for migration confirmation apply only if existing content requires migration; the normal greenfield flow still asks no questions.
 
@@ -236,9 +234,13 @@ Create this file if it does not exist. Record the exact entries added under 1.0.
   "permissions": {
     "allow": [
       "Edit(.claude/agents/**)",
+      "Write(.claude/agents/**)",
       "Edit(.claude/commands/**)",
+      "Write(.claude/commands/**)",
       "Edit(.claude/hooks/**)",
+      "Write(.claude/hooks/**)",
       "Edit(.docs/**)",
+      "Write(.docs/**)",
       "Edit(AGENTS.md)",
       "Bash(git status)",
       "Bash(git status:*)",
@@ -482,7 +484,7 @@ The only accepted remote fields are integer `version` and `details-url`, which m
 Write the following helper under the ownership contract:
 
 ```python
-"""Bootstrap v12: local context, task evidence, retrieval, report-only governance checks, passive cache refresh."""
+"""Bootstrap v11: local context, task evidence, retrieval, report-only governance checks, passive cache refresh."""
 import datetime as dt
 import hashlib
 import json
@@ -1167,14 +1169,14 @@ Invoke the learner subagent now. First locate or create the current task-evidenc
 
 **Write the `CLAUDE.md` pointer stub** with the exact content shown below, subject to 1.0.6 and preservation of existing instructions. If `CLAUDE.md` already exists and is a full instructions file (it contains the routing index rather than a pointer), do not silently overwrite it: fold anything `AGENTS.md` is missing into `AGENTS.md` first, then replace `CLAUDE.md` with the stub. If `CLAUDE.md` is already the current stub, leave it.
 
-**Version marker.** Both files carry a `> Bootstrapped by nohell v12` line directly under the H1 title. When creating them, include it as shown. When updating existing files under 1.0.6, and only after successful verification: if a `> Bootstrapped by nohell v<N>` line already exists, rewrite it to the current version; if none exists, insert it directly under the H1 title. Exactly one such line per file.
+**Version marker.** Both files carry a `> Bootstrapped by nohell v11` line directly under the H1 title. When creating them, include it as shown. When updating existing files under 1.0.6, and only after successful verification: if a `> Bootstrapped by nohell v<N>` line already exists, rewrite it to the current version; if none exists, insert it directly under the H1 title. Exactly one such line per file.
 
 #### `CLAUDE.md` pointer stub
 
 ```markdown
 # Project Instructions for AI Agents
 
-> Bootstrapped by nohell v12
+> Bootstrapped by nohell v11
 
 The project instruction entry point is `AGENTS.md`, imported below via `@AGENTS.md`; it routes to authoritative rule files and relevant memory. The import loads the full content into context automatically: do NOT Read `AGENTS.md` again manually. This file is intentionally a pointer only; never edit it during ordinary project work and never duplicate content here. Bootstrap marker/pointer migrations follow the ownership contract. Edit routing and stable facts in `AGENTS.md`, and rule bodies in their own `.docs/rules/` files.
 
@@ -1186,7 +1188,7 @@ The project instruction entry point is `AGENTS.md`, imported below via `@AGENTS.
 ````markdown
 # Project Instructions for AI Agents
 
-> Bootstrapped by nohell v12
+> Bootstrapped by nohell v11
 
 This file (`AGENTS.md`) is the routing index for any AI agent working in this repo, and the single source of truth for project instructions. `CLAUDE.md` is a thin pointer that imports this file so Claude Code loads it automatically; this file owns routing and stable project facts, while individual rule files own their full rule content.
 
@@ -1450,7 +1452,7 @@ Finalize the manifest from actual created/migrated artifacts, including current 
 
 Exercise the hook launchers with JSON stdin for `startup`, `resume`, `clear`, `compact`, and `fork`. Confirm context contains active universal rules and plan summaries only, and cached update notices appear only for `startup`. Check requested and emitted character counts against 16,000; test an oversized rule to prove the explicit overflow fallback works. Use disposable fixtures, not edits to real policy. Check the updater with an isolated external cache and mocked transport: newer/equal/older versions, warm/expired caches, opt-out, absent trust, malformed/oversized responses, redirect rejection, offline errors, and a slow response. No non-startup invocation may contact the network. Confirm the updater has no stdout/stderr, returns within its own deadline, and never changes the project worktree. Do not claim these checks passed merely because the code looks correct.
 
-Review the final migration diff for preserved user content, duplicate hooks/sections, and any contradictory v9/v10 retrieval or learner instructions. Verify task-evidence schema, retrieval fixtures, learning metadata, and baseline-versus-candidate evaluation behavior. Errors in newly generated/managed artifacts block a successful v12 stamp; unresolved legacy warnings or unavailable native checks must be explicitly listed with their consequences. After an otherwise successful run, update owned version markers and the installed manifest version together, then rerun verification against those final files.
+Review the final migration diff for preserved user content, duplicate hooks/sections, and any contradictory v9/v10 retrieval or learner instructions. Verify task-evidence schema, retrieval fixtures, learning metadata, and baseline-versus-candidate evaluation behavior. Errors in newly generated/managed artifacts block a successful v11 stamp; unresolved legacy warnings or unavailable native checks must be explicitly listed with their consequences. After an otherwise successful run, update owned version markers and the installed manifest version together, then rerun verification against those final files.
 
 ### 3.4 Final summary to user
 
@@ -1459,7 +1461,7 @@ Print a concise summary of what was created or modified, grouped by:
 - **Modified** (existing files updated)
 - **Skipped** (existing files left untouched)
 
-State which mode ran (A greenfield or B existing repo) and whether this repo was successfully marked `Bootstrapped by nohell v12` or remains a partial upgrade at its prior version. In Mode B, list the project-tailored agents you generated and one line each on what they do. In Mode A, state that no context-gathering or tailored agents ran because the project is greenfield, and that they will be worth revisiting once there is a real codebase.
+State which mode ran (A greenfield or B existing repo) and whether this repo was successfully marked `Bootstrapped by nohell v11` or remains a partial upgrade at its prior version. In Mode B, list the project-tailored agents you generated and one line each on what they do. In Mode A, state that no context-gathering or tailored agents ran because the project is greenfield, and that they will be worth revisiting once there is a real codebase.
 
 If step 1.0.5 ran (a prior bootstrap was detected), add a **Migration** line: the prior version detected and what each migration did (Obsidian removal, CLAUDE.md stub-ified, per-task reread section replaced, hook installed, stale seeded rules reconciled, workaround learning superseded, model pins removed), or that the user declined a removal and the artifacts remain.
 
