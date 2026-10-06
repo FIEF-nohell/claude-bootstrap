@@ -119,6 +119,12 @@ Initial shape (populate `artifacts` from actual results, never leave placeholder
     "metadata-url": "https://raw.githubusercontent.com/FIEF-nohell/claude-bootstrap/master/bootstrap-release.json",
     "details-url": "https://github.com/FIEF-nohell/claude-bootstrap#bootstrap-update-details"
   },
+  "module-source": {
+    "enabled": true,
+    "trusted": true,
+    "registry-url": "https://raw.githubusercontent.com/FIEF-nohell/claude-bootstrap/master/modules/registry.json",
+    "repository": "FIEF-nohell/claude-bootstrap"
+  },
   "artifacts": []
 }
 ```
@@ -133,7 +139,7 @@ Apply this upgrade algorithm before each write:
 4. `seeded-user-editable`, `adopted/legacy`, or unrecorded existing file: never alter it automatically. Propose a focused migration or ownership transfer for explicit authorization. An authorized transfer records its scope and actual post-migration baseline; it does not retroactively prove provenance. Even an unchanged seeded rule remains user-editable policy.
 5. Before offering removal of an obsolete feature, enumerate its manifest records and actual paths. Missing records or pre-v10 artifacts must be identified as legacy/unproven, not assumed bootstrap property. Never delete without the existing confirmation step. Remove ledger entries only after confirmed removal.
 
-On first upgrade from pre-v10, identify likely old artifacts, but record unknown provenance as `adopted/legacy`, with null template/digest values. A version marker or matching heading does not prove unchanged ownership. Exact comparison with a trusted historical template can support a proposed adoption; ask before transferring an existing file to managed ownership. Newly created v13 files get normal records. Existing unrelated user files need no ledger entry. Preserve an existing fork's source override. The default trusted source above is supplied by this explicit bootstrap work order; if its provenance is absent or untrusted, set `update-source` to null and make no request.
+On first upgrade from pre-v10, identify likely old artifacts, but record unknown provenance as `adopted/legacy`, with null template/digest values. A version marker or matching heading does not prove unchanged ownership. Exact comparison with a trusted historical template can support a proposed adoption; ask before transferring an existing file to managed ownership. Newly created v13 files get normal records. Existing unrelated user files need no ledger entry. Preserve an existing fork's update-source and module-source overrides. The default trusted sources above are supplied by this explicit bootstrap work order; if provenance is absent or untrusted, set the affected source to null and make no request.
 
 Record version 13 only after the intended migration and verification finish; a declined required migration remains an explicitly partial upgrade with the prior installed version retained. Do not stamp success over unresolved bootstrap-managed errors. Legacy warnings can remain, listed individually. In Mode A, requests for migration confirmation apply only if existing content requires migration; the normal greenfield flow still asks no questions.
 
@@ -1248,6 +1254,18 @@ Also create a tiny launcher at `.claude/commands/design-studio.md`. The launcher
 - repository: `FIEF-nohell/claude-bootstrap`
 
 Store fetched module payload under `.claude/modules/design-studio/`. Register native subagents only when the module is installed; prefix or otherwise namespace installed agent files so they cannot collide with core/project agents. Record the installed module name, remote version, source paths, and content digests in `.claude/modules/installed.json`. An installed module is inert until explicitly invoked and is never loaded by SessionStart.
+
+Create the launcher with this compact behavior:
+
+```markdown
+---
+description: Lazily install and run the remote design-studio capability pack
+---
+
+Resolve the trusted `module-source` from `.claude/bootstrap-manifest.json`. Fetch only the registry entry for `design-studio`, then its declared manifest and files. Validate paths and hashes, install the payload under `.claude/modules/design-studio/`, and register its namespaced agent definitions under `.claude/agents/` only if the module is not already installed. Record the pinned module version and digests in `.claude/modules/installed.json`. Do not update an already-installed module unless the user explicitly asked for an update.
+
+Then execute the installed `design-studio` workflow. Retrieve only the memory domains declared by its manifest plus directly applicable active rules. Dispatch specialists by phase rather than loading every specialist body into the parent context.
+```
 
 The launcher follows these rules:
 - GitHub is the canonical source for module definitions. Never invent missing remote files.
