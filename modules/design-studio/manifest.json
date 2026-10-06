@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "name": "design-studio",
-  "version": 4,
-  "description": "Eight-role design studio focused on familiar high-craft product UI, balanced specificity, and a living stack-native mockup/design system.",
+  "version": 5,
+  "description": "Eight-role design studio for familiar high-craft product UI with a memorable recurring brand signature and living stack-native design system.",
   "commands": [
     {
       "name": "design-studio",
