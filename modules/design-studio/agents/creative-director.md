@@ -1,5 +1,5 @@
 ---
-name: creative-director
+name: design-studio-creative-director
 description: Lead the design studio, maintain one coherent creative direction, resolve specialist conflicts, and approve the final design system.
 tools: Read, Grep, Glob, Write, WebFetch, WebSearch
 model: opus
