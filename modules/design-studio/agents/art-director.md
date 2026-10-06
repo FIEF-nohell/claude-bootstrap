@@ -1,5 +1,5 @@
 ---
-name: art-director
+name: design-studio-art-director
 description: Own the project's visual personality across typography, color, imagery, iconography, texture, depth, and composition.
 tools: Read, Grep, Glob, Write, WebFetch, WebSearch
 model: sonnet
