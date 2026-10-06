@@ -1,6 +1,6 @@
 # Design Studio Workflow
 
-The module operates as a staged studio that produces and maintains a living design implementation, not a bundle of design opinions.
+The module operates as a staged studio that produces and maintains a living design implementation, not a bundle of design opinions. Before visual work, read `references/craft-standards.md`; it is the module's research-backed quality floor and anti-default gate.
 
 ## Core output contract
 
@@ -14,15 +14,18 @@ These are current-state artifacts. They are edited in place throughout the desig
 
 A separate decision record is warranted only when the rationale itself is durable project knowledge that future agents need independently of the current design state.
 
-## Phase 1: Brief, target, and stack detection
+## Phase 1: Brief, target, mode, and stack detection
 Creative Director leads. Brand Strategist and Reference Analyst contribute.
 
 - inspect the repository and existing product
 - retrieve only design-relevant project rules, learnings, decisions, research, and style guidance
 - determine the real implementation stack from repository evidence, including framework, styling system, component library, icon system, animation library, and existing design tokens
+- classify the requested surface as Operate, Persuade, Read, or Experience using `references/craft-standards.md`; do not style before the mode is known
+- state the product's unique mechanism in one sentence and identify the category's obvious visual default
 - determine the product's primary target surface from repository evidence and the user's request: desktop web, responsive web, mobile web, native mobile, tablet, desktop application, or another concrete target
 - identify audience, product purpose, constraints, existing brand signals, implementation limitations, and explicit user requirements
 - write a compact internal design brief and anti-goals
+- include a specificity contract: what structural or interaction idea makes this product recognizably itself rather than a generic app with different copy
 - do not invent a replacement stack merely because another stack would be easier to mock up
 
 If the project is React + Tailwind, the mockup is React + Tailwind. If it is Next.js, use the project's Next.js conventions. If it is React Native or Expo, produce native mobile screens with that stack. If it is another established UI stack, stay inside it.
@@ -41,8 +44,10 @@ UX Architect leads with Brand Strategist and Creative Director.
 
 The representative screen set should exercise the actual system rather than produce decorative one-off pages. Include enough screens/states to validate navigation, hierarchy, forms or controls, content surfaces, feedback states, and responsive behavior relevant to the product.
 
-## Phase 3: Creative direction and first mockup
+## Phase 3: Creative direction, anti-default gate, and first mockup
 Art Director, UI Designer, and Motion Designer work from the approved brief and UX architecture.
+
+Before implementation, reject any direction that fails the anti-default gate in `references/craft-standards.md`. In particular, do not default to card piles, nested cards, hero metrics, progress rings, generic dark-plus-neon palettes, emoji icon systems, or interchangeable productivity-app composition.
 
 Define one coherent direction:
 - visual language
@@ -54,6 +59,8 @@ Define one coherent direction:
 - component language
 - interaction and motion grammar
 - target viewport/device behavior
+
+The direction must name one product-specific visual or interaction anchor derived from the product mechanism.
 
 Then build the first representative mockup in the detected project stack.
 
@@ -71,18 +78,40 @@ The mockup:
 
 For a desktop-first product, render desktop-first representative screens. For a mobile-first/native product, render mobile screens at realistic device dimensions. For responsive products, include the primary viewport plus only the additional breakpoint states needed to prove the system.
 
-## Phase 4: Structured critique
-Each relevant specialist critiques the actual mockup, not an abstract proposal.
+## Phase 4: Independent critique
+Critique the actual mockup, not an abstract proposal.
 
-Each specialist returns exactly:
+Run two assessments independently before synthesis:
+
+A. Design critique led by Creative Director + UX Architect:
+- design specificity
+- hierarchy and composition
+- cognitive load
+- emotional fit
+- product character
+- typography, color, interaction, and motion
+
+B. Craft/implementation critique led by Design Systems Engineer + UI Designer:
+- token consistency
+- responsive/device behavior
+- accessibility
+- state coverage
+- hardcoded or magic values
+- performance hazards
+- mismatch between mockup and design-system artifacts
+
+Do not show B's mechanical findings to A before A finishes; avoid anchoring the aesthetic judgment.
+
+Each assessment returns:
 1. strongest part
 2. weakest part
 3. largest risk
 4. concrete improvement
+5. specificity verdict: authored for this product or category-interchangeable
 
-The Creative Director resolves disagreements. Distinctiveness, clarity, feasibility, accessibility, product positioning, and implementation cost must all be represented.
+A category-interchangeable verdict blocks approval and sends the concept back to Phase 3.
 
-The UI Designer and Design Systems Engineer apply accepted critique directly to the mockup and design-system artifacts before presenting the concept to the user.
+The Creative Director synthesizes disagreements only after both assessments complete. The UI Designer and Design Systems Engineer apply accepted critique directly to the mockup and design-system artifacts before presenting the concept to the user.
 
 ## Phase 5: Systemization
 Design Systems Engineer leads with UI and Motion.
@@ -132,8 +161,10 @@ Do not create a separate "final decision" file just because the user approves a 
 
 If feedback contradicts an earlier project rule or an explicit hard constraint, surface the conflict instead of silently rewriting policy.
 
-## Phase 7: Final review
-Creative Director, UX Architect, and Design Systems Engineer review the current mockup and synchronized design system.
+## Phase 7: Bounded visual QA and final review
+When browser/device rendering is available, inspect all representative target device classes in one batch, fix observed issues in one batch, and perform at most one confirmation pass. Do not enter an open-ended polishing loop.
+
+Creative Director, UX Architect, and Design Systems Engineer then review the current mockup and synchronized design system.
 
 Check:
 - visual coherence
@@ -145,6 +176,8 @@ Check:
 - no undocumented magic values where a token should exist
 - no documented tokens/rules contradicted by the mockup
 - no obsolete design artifacts presented as current state
+- anti-default gate still passes after refinement
+- design specificity verdict is authored for this product, not category-interchangeable
 
 The final state is ready for production implementation precisely because the representative UI already exists in the project's stack and the current style guide describes that implementation.
 
