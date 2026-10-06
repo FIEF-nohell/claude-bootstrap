@@ -25,7 +25,7 @@ The prompt auto-detects which mode applies from what is on disk. It does not ask
 
 ## Session-start hook
 
-Every future session self-briefs through a committed SessionStart hook (`.claude/hooks/session-start.ps1`, or `.sh` on non-Windows, wired in `.claude/settings.json`). It injects active universal rules and in-progress-plan summaries within a 16,000-character budget. Scoped rules, learnings, decisions, and style-guide sections are retrieved for relevant work. Oversized context triggers an explicit manual-read fallback. The agent confirms context is present and replies `Ready to work.` (plus a resume summary if an in-progress plan exists).
+Every future session self-briefs through a committed SessionStart hook (`.claude/hooks/session-start.ps1`, or `.sh` on non-Windows, wired in `.claude/settings.json`). It injects a compact index of active universal rules, read-only Git health/upstream freshness, and in-progress-plan summaries with recent commit evidence, all within a 16,000-character budget. Full rule bodies, scoped rules, learnings, decisions, style-guide sections, research, and optional modules are retrieved only when relevant. Oversized startup context triggers an explicit targeted-read fallback instead of dumping more text into the session.
 
 The shared context, verifier, and update helper requires Python 3.9+ and PyYAML, checked during bootstrap. Missing dependencies are reported as incomplete setup; hooks never install packages at startup.
 
@@ -33,7 +33,7 @@ The shared context, verifier, and update helper requires Python 3.9+ and PyYAML,
 
 ## Re-bootstrapping and versioning marker
 
-Each run stamps a `Bootstrapped by nohell v<N>` marker into the generated `AGENTS.md` (and the `CLAUDE.md` pointer). On a re-run, the prompt reads that marker to detect a prior bootstrap and migrate: it strips artifacts older versions installed but the current one dropped (for example the old Obsidian vault integration), folds a duplicated full `CLAUDE.md` back into `AGENTS.md` and reduces it to the pointer stub, installs the session-start hook, replaces the old per-task reread section, verifies and supersedes the stale subagent-dispatch workaround, and removes hardcoded model pins. It asks for confirmation before deleting anything, and avoids duplicating context notes or tailored agents.
+Each run stamps a `Bootstrapped by nohell v<N>` marker into the generated `AGENTS.md` (and the `CLAUDE.md` pointer). On a re-run, the prompt reads that marker to detect a prior bootstrap and migrate: it strips artifacts older versions installed but the current one dropped (for example the old Obsidian vault integration), folds a duplicated full `CLAUDE.md` back into `AGENTS.md` and reduces it to the pointer stub, installs the session-start hook, replaces the old per-task reread section, verifies and supersedes stale subagent-dispatch workarounds, migrates model routing to stable capability-family aliases, and installs the lazy module launcher/runtime. It asks for confirmation before deleting anything, and avoids duplicating context notes or tailored agents.
 
 In v10, `.claude/bootstrap-manifest.json` records one current entry per managed artifact, including ownership, template version, digest, managed sections, and canonical source. Unchanged managed files can update automatically; user-modified files require review. Mixed files update only recorded sections or JSON entries. Pre-v10 provenance is treated conservatively, and incomplete migrations retain their prior version. The manifest changes only during bootstrap work; Git provides history.
 
@@ -53,7 +53,7 @@ When run, it produces (or merges into existing files):
       session-start.ps1        universal rules and plan summaries (.sh on non-Windows)
       bootstrap-update.ps1     asynchronous fresh-start cache refresh (.sh on non-Windows)
       verify-governance.ps1    report-only verifier (.sh on non-Windows)
-      bootstrap-runtime.py     shared parsing, context budget, and passive update logic
+      bootstrap-runtime.py     compact startup context, Git health, retrieval, verification, and passive update logic
     agents/
       planner.md
       implementer.md
@@ -64,6 +64,8 @@ When run, it produces (or merges into existing files):
       <tailored>.md            extra project-specific agents, generated in Mode B only
     commands/
       learn.md                 the /learn slash command
+      design-studio.md         tiny lazy launcher; specialist payload stays remote until invoked
+    modules/                   lazily fetched capability packs; inert until explicitly invoked
   .docs/
     evidence/                  task evidence and learning dispositions keyed by stable task ID
     evaluations/               optional baseline/candidate fixtures and results for existing repos
@@ -75,7 +77,7 @@ When run, it produces (or merges into existing files):
     research/                  findings from the researcher agent (incl. Mode B context note)
 ```
 
-The six agents above are the core set, installed in both modes. In Mode B the prompt adds a small number of project-tailored agents (for example a route-builder for a Next.js app) on top of them and registers each in the `AGENTS.md` agent table.
+The six agents above are the core set, installed in both modes. In Mode B the prompt adds a small number of project-tailored agents (for example a route-builder for a Next.js app) on top of them and registers each in the `AGENTS.md` agent table. Core and tailored agents use stable family aliases by capability tier rather than numbered model IDs: reasoning-heavy roles use Opus, execution-heavy roles use Sonnet, and Haiku is reserved for genuinely mechanical low-risk helpers.
 
 ## What the agents do
 
@@ -115,6 +117,14 @@ Adds explicit task-evidence records, learning dispositions, scoped retrieval gui
 
 Fixes the startup permission warning every v11-and-earlier project printed on every Claude Code launch: `.claude/settings.json` carried paired `Edit(<glob>)` / `Write(<glob>)` allow rules for the same globs (`.claude/agents/**`, `.claude/commands/**`, `.claude/hooks/**`, `.docs/**`), and `Write(...)` is not matched by the harness's file-permission checks, so each one printed `Permission allow rule ... is not matched by file permission checks`. The redundant `Write(...)` entries are removed from the template; `Edit(...)` already covers both editing and writing. A re-bootstrap of an existing v11-or-earlier project applies the same fix to its committed `.claude/settings.json` (step 1.0.5, item 10).
 
+### v13
+
+Introduces adaptive startup context and lazy capability modules. SessionStart no longer injects full universal rule bodies; it injects a compact policy index, read-only Git/worktree and upstream status, and plan summaries enriched with the latest repository evidence. In-progress plans are checked against their recorded base plus up to the latest three commits before being presented as unfinished work.
+
+v13 also replaces blanket `model: inherit` behavior with stable capability-family routing: high-leverage planning, critique, and diagnosis use `opus`; implementation, research, and most specialist execution use `sonnet`; `haiku` is reserved for low-risk mechanical helpers. No numbered model release is pinned.
+
+The bootstrap also gains a remote module registry. Optional capability packs remain in this GitHub repository and are fetched only when explicitly invoked. The first module is `design-studio`, an eight-role staged design team with Creative Director, Brand Strategist, Reference Analyst, UX Architect, UI Designer, Art Director, Motion Designer, and Design Systems Engineer. The local project keeps only a tiny launcher until the module is actually used.
+
 [`bootstrap-release.json`](bootstrap-release.json) exposes integer `version` and `details-url`. Generated projects default to the [raw metadata on master](https://raw.githubusercontent.com/FIEF-nohell/claude-bootstrap/master/bootstrap-release.json); forks can override the trusted metadata and details URLs in their local manifest. Keep the details URL stable across releases and update this section with release information.
 
 Only a fresh startup triggers an asynchronous check. Results, including failures, are cached for 24 hours outside the repository. Startup reads the cache without waiting for the network, so a cold-cache result normally appears on the next fresh startup. Requests have a 2.5-second total deadline; failures are silent. Notices contain only version information and the trusted details URL. No update is downloaded or installed. Set `CLAUDE_BOOTSTRAP_UPDATE_CHECK=0`, or set `update-source.enabled` to `false` in the manifest, to opt out. No trusted source means no request.
@@ -144,4 +154,4 @@ The full versioning workflow is in `CLAUDE.md`. Short version: archive first, ed
 
 ## Status
 
-Pre-1.0. Iterating. V11 adds the evidence and evaluation contracts needed to measure whether the `learner`-driven self-improvement loop actually improves later work. V12 fixes the startup permission warning from redundant `Write(...)` allow rules. Feedback welcome.
+Pre-1.0. Iterating. V13 adds compact adaptive startup context, Git/plan reconciliation, stable capability-tier model routing, and lazy remote modules with `design-studio` as the first capability pack. Feedback welcome.
