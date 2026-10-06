@@ -10,14 +10,14 @@
     }
   ],
   "agents": [
-    "creative-director",
-    "brand-strategist",
-    "reference-analyst",
-    "ux-architect",
-    "ui-designer",
-    "art-director",
-    "motion-designer",
-    "design-systems-engineer"
+    "design-studio-creative-director",
+    "design-studio-brand-strategist",
+    "design-studio-reference-analyst",
+    "design-studio-ux-architect",
+    "design-studio-ui-designer",
+    "design-studio-art-director",
+    "design-studio-motion-designer",
+    "design-studio-design-systems-engineer"
   ],
   "files": [
     "workflow.md",
