@@ -47,7 +47,7 @@ The representative screen set should exercise the actual system rather than prod
 ## Phase 3: Creative direction, anti-default gate, and first mockup
 Art Director, UI Designer, and Motion Designer work from the approved brief and UX architecture.
 
-Before implementation, reject any direction that fails the anti-default gate in `references/craft-standards.md`. In particular, do not default to card piles, nested cards, hero metrics, progress rings, generic dark-plus-neon palettes, emoji icon systems, or interchangeable productivity-app composition.
+Before implementation, run the anti-default reflex check in `references/craft-standards.md`. Do not reject familiar patterns merely for being familiar. Reject unexamined defaults, generic-by-accident composition, or forced originality that harms clarity. For Operate-mode product UI, prefer a familiar shell with one or two product-specific interaction or visualization ideas and unusually careful execution.
 
 Define one coherent direction:
 - visual language
@@ -107,9 +107,9 @@ Each assessment returns:
 2. weakest part
 3. largest risk
 4. concrete improvement
-5. specificity verdict: authored for this product or category-interchangeable
+5. specificity verdict: generic by accident, familiar by intent, specific and appropriate, or forced originality
 
-A category-interchangeable verdict blocks approval and sends the concept back to Phase 3.
+A generic-by-accident or forced-originality verdict blocks approval and sends the concept back to Phase 3. Familiar-by-intent is acceptable when the interface is clear, polished, platform-appropriate, and the product-specific interaction or information model still comes through.
 
 The Creative Director synthesizes disagreements only after both assessments complete. The UI Designer and Design Systems Engineer apply accepted critique directly to the mockup and design-system artifacts before presenting the concept to the user.
 
@@ -177,7 +177,7 @@ Check:
 - no documented tokens/rules contradicted by the mockup
 - no obsolete design artifacts presented as current state
 - anti-default gate still passes after refinement
-- design specificity verdict is authored for this product, not category-interchangeable
+- specificity verdict is not generic by accident and not forced originality
 
 The final state is ready for production implementation precisely because the representative UI already exists in the project's stack and the current style guide describes that implementation.
 
