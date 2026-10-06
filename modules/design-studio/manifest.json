@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "name": "design-studio",
+  "version": 1,
+  "description": "Eight-role design studio for creating a project-specific design system through staged specialist critique.",
+  "commands": [
+    {
+      "name": "design-studio",
+      "source": "commands/design-studio.md"
+    }
+  ],
+  "agents": [
+    "creative-director",
+    "brand-strategist",
+    "reference-analyst",
+    "ux-architect",
+    "ui-designer",
+    "art-director",
+    "motion-designer",
+    "design-systems-engineer"
+  ],
+  "files": [
+    "workflow.md",
+    "commands/design-studio.md",
+    "agents/creative-director.md",
+    "agents/brand-strategist.md",
+    "agents/reference-analyst.md",
+    "agents/ux-architect.md",
+    "agents/ui-designer.md",
+    "agents/art-director.md",
+    "agents/motion-designer.md",
+    "agents/design-systems-engineer.md"
+  ],
+  "memory_domains": [
+    "brand",
+    "product",
+    "ui",
+    "ux",
+    "motion",
+    "accessibility",
+    "design-system"
+  ],
+  "install_root": ".claude/modules/design-studio",
+  "activation": "explicit-command",
+  "source_of_truth": "remote"
+}
