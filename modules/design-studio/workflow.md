@@ -60,7 +60,7 @@ Define one coherent direction:
 - interaction and motion grammar
 - target viewport/device behavior
 
-The direction must name one product-specific visual or interaction anchor derived from the product mechanism.
+The direction must name one product-specific visual or interaction anchor derived from the product mechanism, plus one memorable brand signature as defined in `references/craft-standards.md`. The signature may be typography, imagery, illustration, mascot, shape language, visualization, or motion, but it must recur across at least two representative surfaces without turning the whole interface into decoration.
 
 Then build the first representative mockup in the detected project stack.
 
