@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "name": "design-studio",
-  "version": 1,
-  "description": "Eight-role design studio for creating a project-specific design system through staged specialist critique.",
+  "version": 2,
+  "description": "Eight-role design studio that maintains a runnable stack-native mockup and synchronized living design system through staged specialist critique.",
   "commands": [
     {
       "name": "design-studio",
@@ -42,5 +42,10 @@
   ],
   "install_root": ".claude/modules/design-studio",
   "activation": "explicit-command",
-  "source_of_truth": "remote"
+  "source_of_truth": "remote",
+  "outputs": {
+    "mockup": ".design-studio/mockup/ or project-established prototype location",
+    "style_guide": ".docs/design/STYLE_GUIDE.md",
+    "tokens": ".docs/design/tokens.json or project-native token source"
+  }
 }
