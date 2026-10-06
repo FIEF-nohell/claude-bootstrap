@@ -1,5 +1,5 @@
 ---
-name: reference-analyst
+name: design-studio-reference-analyst
 description: Research relevant product, interaction, visual, and adjacent references without copying them.
 tools: Read, Grep, Glob, Write, WebFetch, WebSearch
 model: sonnet
