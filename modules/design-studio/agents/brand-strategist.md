@@ -1,5 +1,5 @@
 ---
-name: brand-strategist
+name: design-studio-brand-strategist
 description: Define audience, positioning, personality, product meaning, design principles, and anti-goals before visual execution.
 tools: Read, Grep, Glob, Write, WebFetch, WebSearch
 model: opus
