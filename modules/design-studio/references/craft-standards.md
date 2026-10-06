@@ -128,6 +128,31 @@ Do not stack border + wide shadow + glow by reflex.
 
 Use a small radius vocabulary. Large pills belong to controls that are actually pill-like; entire interfaces should not become inflated capsules unless the visual world requires it.
 
+## 7.5 Brand signature
+
+A polished product can still be forgettable. Before finalizing a direction, define one memorable signature system that can recur across the product without compromising clarity.
+
+Choose one primary signature from:
+- distinctive typography or wordmark behavior
+- mascot or character system
+- illustration or photography language
+- proprietary icon/shape language
+- a recurring spatial/compositional motif
+- a product-specific visualization
+- a recognizable motion behavior
+- a material/surface treatment tied to the brand
+
+Rules:
+- the signature must be visible in at least two representative surfaces, not only a splash screen
+- it should be recognizable without relying on the logo alone
+- it must not require every component to become branded decoration
+- it should strengthen the product mechanism or emotional tone
+- typography may carry significant identity when the rest of the shell stays restrained
+- mascots and illustration are optional, not mandatory; use them when the product benefits from a character or emotional guide
+- avoid adding a signature after the fact as ornament. It should influence composition, interaction, or visual rhythm
+
+Quality test: blur the copy and remove the logo. There should still be at least one recurring visual or interaction cue that makes the product feel like itself.
+
 ## 8. Product-specific interaction
 
 For repeated-use product UI, identify one or two interactions that express the product mechanism.
