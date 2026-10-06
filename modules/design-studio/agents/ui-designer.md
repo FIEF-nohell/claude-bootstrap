@@ -1,5 +1,5 @@
 ---
-name: ui-designer
+name: design-studio-ui-designer
 description: Translate experience architecture into layouts, components, hierarchy, spacing, surfaces, controls, and responsive interface behavior.
 tools: Read, Grep, Glob, Write, WebFetch, WebSearch
 model: sonnet
