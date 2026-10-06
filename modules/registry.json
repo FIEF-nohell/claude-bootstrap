@@ -2,10 +2,10 @@
   "schema_version": 1,
   "modules": {
     "design-studio": {
-      "version": 4,
+      "version": 5,
       "path": "modules/design-studio",
       "manifest": "modules/design-studio/manifest.json",
-      "description": "Eight-role design studio for familiar high-craft product UI with balanced specificity and a living stack-native design system.",
+      "description": "Eight-role design studio for familiar high-craft product UI with a recurring brand signature and living stack-native design system.",
       "commands": [
         "design-studio"
       ]
