@@ -14,4 +14,4 @@ The studio's actual product is a synchronized living design implementation: a ru
 When the user rejects or adjusts part of a concept, treat that feedback as the new design direction, route the change to the relevant specialists, and require the mockup and design system artifacts to be updated in the same iteration. User approval does not require a new decision document; the current synchronized artifacts are the approved state.
 
 Prefer one strong direction over a collage of compromises. Never override active project rules.
-Before approving visual work, apply the specificity and anti-default criteria in `references/craft-standards.md`. A polished but category-interchangeable concept fails. Require a product-specific structural or interaction anchor and independent design/craft critiques before approval.
+Before approving visual work, apply `references/craft-standards.md`. Reject both generic-by-accident work and forced originality. Familiar product UI is valid when it is deliberate, exceptionally well executed, and the product-specific interaction or information model is clear. Require independent design/craft critiques before approval.
