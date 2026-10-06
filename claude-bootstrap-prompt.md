@@ -12,7 +12,7 @@ This prompt sets up the Claude Code environment: git hygiene, permissions, a `.d
 
 **`AGENTS.md` is the single source of truth for project instructions.** It holds instruction topology, the routing index, rule links, agent table, and stable project facts. Individual `.docs/rules/` files are authoritative for the full content of their own rules; do not duplicate long rule bodies here. `CLAUDE.md` is a thin pointer that imports `AGENTS.md` via the `@AGENTS.md` include syntax, so Claude Code loads the full content automatically without a second manual read. Routing and project-overview edits land in `AGENTS.md`; rule-body edits land in their own files; the `CLAUDE.md` stub never needs content updates.
 
-**This bootstrap is `nohell v12`.** Treat that exact string as the current version throughout this prompt. It gets stamped into the generated `AGENTS.md` (and the `CLAUDE.md` pointer stub) as a `Bootstrapped by nohell v12` marker, so any future run can tell which version last touched this repo and migrate accordingly (see step 1.0.5). Whenever this prompt is revised to a new version, bump the number here, in the step 1.8 marker line, and in the migration logic in step 1.0.5.
+**This bootstrap is `nohell v13`.** Treat that exact string as the current version throughout this prompt. It gets stamped into the generated `AGENTS.md` (and the `CLAUDE.md` pointer stub) as a `Bootstrapped by nohell v12` marker, so any future run can tell which version last touched this repo and migrate accordingly (see step 1.0.5). Whenever this prompt is revised to a new version, bump the number here, in the step 1.8 marker line, and in the migration logic in step 1.0.5.
 
 Design principles (introduced in v8, they explain several changes from v7):
 
@@ -20,6 +20,9 @@ Design principles (introduced in v8, they explain several changes from v7):
 - **Load context once.** The `@AGENTS.md` import plus the hook output mean no file gets read twice per session. Per-task full rereads are gone; only targeted re-reads remain.
 - **Inherit the session model.** Agents no longer pin `model: sonnet` / `model: opus`. They use `model: inherit` so a session running a stronger model is not silently downgraded. Pin a cheaper model only deliberately, per agent, when the task is genuinely mechanical.
 - **No stale facts baked in.** No hardcoded user paths, no workarounds for old Claude Code quirks. Where behavior may have changed since this prompt was written, verify instead of assuming.
+- **Retrieve policy, do not preload the library.** Session start injects a compact policy index, plan state, and repository health. Full rule bodies, learnings, decisions, research, and style guidance are loaded only when the current task makes them relevant.
+- **Lazy capabilities.** The bootstrap installs only its core runtime and tiny module launchers. Specialist capability packs live in the trusted bootstrap GitHub repository and are fetched into the project only when explicitly invoked.
+- **Capability-tier model routing.** Use stable Claude family aliases rather than dated model IDs: `opus` for high-leverage planning, diagnosis, critique, and creative direction; `sonnet` for implementation, research, synthesis, and most specialist execution; `haiku` only for genuinely mechanical low-risk helpers. Never pin a numbered model merely because it is current today.
 
 The bootstrap runs in one of two modes, which you detect automatically in step 1.0:
 
@@ -94,7 +97,9 @@ If none of these are present, this is a fresh bootstrap: skip the rest of 1.0.5 
 
 10. **Fix redundant Write() permission rules (v11 and earlier).** In `.claude/settings.json`, `permissions.allow` may carry paired `Edit(<glob>)` / `Write(<glob>)` entries for the same glob (agents, commands, hooks, docs). `Write(...)` is not matched by the harness's file-permission checks, so it is dead weight and the harness prints a startup warning for each one. Remove every `Write(...)` entry that has a matching `Edit(...)` entry for the same glob; keep the `Edit(...)` entry, which already covers both editing and writing.
 
-11. **Record what you migrated** so the Phase 3 summary can report it (prior version, what was removed, folded, reconciled, or left).
+11. **Upgrade v12 startup, model routing, and capability loading.** For v12 and earlier, migrate managed startup/runtime sections so SessionStart no longer injects full universal rule bodies. Install the compact policy index, read-only Git health and remote freshness check, plan-vs-recent-commit reconciliation guidance, the module runtime/launcher described below, and stable family model aliases for unchanged managed core agents. Do not overwrite user-modified agents without the focused-diff confirmation required by 1.0.6. Preserve any trusted update-source override.
+
+12. **Record what you migrated** so the Phase 3 summary can report it (prior version, what was removed, folded, reconciled, or left).
 
 The version marker itself is brought up to date in step 1.8.
 
@@ -107,7 +112,7 @@ Initial shape (populate `artifacts` from actual results, never leave placeholder
 ```json
 {
   "schema-version": 1,
-  "bootstrap-version": 11,
+  "bootstrap-version": 13,
   "update-source": {
     "enabled": true,
     "trusted": true,
@@ -128,9 +133,9 @@ Apply this upgrade algorithm before each write:
 4. `seeded-user-editable`, `adopted/legacy`, or unrecorded existing file: never alter it automatically. Propose a focused migration or ownership transfer for explicit authorization. An authorized transfer records its scope and actual post-migration baseline; it does not retroactively prove provenance. Even an unchanged seeded rule remains user-editable policy.
 5. Before offering removal of an obsolete feature, enumerate its manifest records and actual paths. Missing records or pre-v10 artifacts must be identified as legacy/unproven, not assumed bootstrap property. Never delete without the existing confirmation step. Remove ledger entries only after confirmed removal.
 
-On first upgrade from pre-v10, identify likely old artifacts, but record unknown provenance as `adopted/legacy`, with null template/digest values. A version marker or matching heading does not prove unchanged ownership. Exact comparison with a trusted historical template can support a proposed adoption; ask before transferring an existing file to managed ownership. Newly created v12 files get normal records. Existing unrelated user files need no ledger entry. Preserve an existing fork's source override. The default trusted source above is supplied by this explicit bootstrap work order; if its provenance is absent or untrusted, set `update-source` to null and make no request.
+On first upgrade from pre-v10, identify likely old artifacts, but record unknown provenance as `adopted/legacy`, with null template/digest values. A version marker or matching heading does not prove unchanged ownership. Exact comparison with a trusted historical template can support a proposed adoption; ask before transferring an existing file to managed ownership. Newly created v13 files get normal records. Existing unrelated user files need no ledger entry. Preserve an existing fork's source override. The default trusted source above is supplied by this explicit bootstrap work order; if its provenance is absent or untrusted, set `update-source` to null and make no request.
 
-Record version 11 only after the intended migration and verification finish; a declined required migration remains an explicitly partial upgrade with the prior installed version retained. Do not stamp success over unresolved bootstrap-managed errors. Legacy warnings can remain, listed individually. In Mode A, requests for migration confirmation apply only if existing content requires migration; the normal greenfield flow still asks no questions.
+Record version 13 only after the intended migration and verification finish; a declined required migration remains an explicitly partial upgrade with the prior installed version retained. Do not stamp success over unresolved bootstrap-managed errors. Legacy warnings can remain, listed individually. In Mode A, requests for migration confirmation apply only if existing content requires migration; the normal greenfield flow still asks no questions.
 
 ### 1.1 Detect state
 
@@ -238,12 +243,16 @@ Create this file if it does not exist. Record the exact entries added under 1.0.
       "Edit(.claude/agents/**)",
       "Edit(.claude/commands/**)",
       "Edit(.claude/hooks/**)",
+      "Edit(.claude/modules/**)",
       "Edit(.docs/**)",
       "Edit(AGENTS.md)",
       "Bash(git status)",
       "Bash(git status:*)",
       "Bash(git diff)",
       "Bash(git diff:*)",
+      "Bash(git fetch:*)",
+      "Bash(git remote:*)",
+      "Bash(git rev-list:*)",
       "Bash(git log)",
       "Bash(git log:*)",
       "Bash(git show:*)",
@@ -482,13 +491,14 @@ The only accepted remote fields are integer `version` and `details-url`, which m
 Write the following helper under the ownership contract:
 
 ```python
-"""Bootstrap v12: local context, task evidence, retrieval, report-only governance checks, passive cache refresh."""
+"""Bootstrap v13: compact startup context, git health, task evidence, retrieval, governance checks, passive updates."""
 import datetime as dt
 import hashlib
 import json
 import os
 from pathlib import Path
 import re
+import subprocess
 import sys
 import threading
 import time
@@ -640,9 +650,64 @@ def refresh(event):
         temporary.unlink(missing_ok=True)
 
 
+def run_git(*args, timeout=2):
+    return subprocess.run(
+        ['git', *args], cwd=ROOT, text=True, capture_output=True, timeout=timeout, check=False
+    )
+
+
+def git_health():
+    if not (ROOT / '.git').exists():
+        return 'not a Git repository'
+    lines = []
+    branch = run_git('branch', '--show-current').stdout.strip() or 'detached HEAD'
+    dirty = run_git('status', '--porcelain').stdout.splitlines()
+    lines.append('branch: ' + branch)
+    lines.append('worktree: ' + ('dirty (' + str(len(dirty)) + ' changed entries)' if dirty else 'clean'))
+    upstream = run_git('rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{u}')
+    if upstream.returncode != 0:
+        lines.append('upstream: none configured; remote freshness unknown')
+    else:
+        upstream_name = upstream.stdout.strip()
+        fetch = run_git('fetch', '--quiet', timeout=3)
+        if fetch.returncode != 0:
+            lines.append('remote check: fetch failed or timed out; freshness unknown')
+        counts = run_git('rev-list', '--left-right', '--count', 'HEAD...' + upstream_name)
+        if counts.returncode == 0:
+            ahead, behind = [int(x) for x in counts.stdout.split()]
+            state = 'up to date' if ahead == 0 and behind == 0 else (
+                f'ahead {ahead}, behind {behind}' if ahead and behind else
+                f'ahead {ahead}' if ahead else f'behind {behind}'
+            )
+            lines.append('upstream: ' + upstream_name + ' (' + state + ')')
+    recent = run_git('log', '-3', '--pretty=format:%h %s')
+    if recent.returncode == 0 and recent.stdout.strip():
+        lines.append('recent commits:\n' + recent.stdout.strip())
+    return '\n'.join(lines)
+
+
+def plan_git_evidence(meta):
+    base = meta.get('base')
+    if not isinstance(base, str) or not base:
+        return 'git evidence: plan has no usable base sha'
+    commits = run_git('log', '--max-count=3', '--pretty=format:%h %s', base + '..HEAD')
+    changed = run_git('diff', '--name-only', base + '..HEAD')
+    if commits.returncode != 0 or changed.returncode != 0:
+        return 'git evidence: unable to compare plan base with HEAD'
+    commit_lines = commits.stdout.splitlines()
+    changed_lines = changed.stdout.splitlines()
+    return (
+        'git evidence: ' + str(len(commit_lines)) + ' of the latest post-base commits shown; '
+        + str(len(changed_lines)) + ' files changed since base'
+        + ('\nrecent post-base commits:\n' + '\n'.join(commit_lines) if commit_lines else '')
+        + ('\nchanged since base: ' + ', '.join(changed_lines[:20]) if changed_lines else '')
+    )
+
+
 def context(source='startup'):
     chunks = ['## Project context (auto-injected by session-start hook)']
     problems = []
+    universal = []
     for path in documents('rules'):
         try:
             meta, body = frontmatter(path)
@@ -651,9 +716,23 @@ def context(source='startup'):
             elif meta.get('status') not in ('active', 'candidate', 'superseded') or not scope_ok(meta.get('scope')):
                 problems.append(str(path.relative_to(ROOT)) + ': invalid status/scope; inspect before governed work')
             elif meta.get('status') == 'active' and meta.get('scope') == '**':
-                chunks.append('### ' + path.relative_to(ROOT).as_posix() + '\n' + body)
+                universal.append(
+                    '- ' + str(meta.get('id', path.stem)) + ' [' + str(meta.get('priority', 'unknown')) + '] '
+                    + path.relative_to(ROOT).as_posix()
+                )
         except Exception:
             problems.append(str(path.relative_to(ROOT)) + ': unreadable metadata; inspect before governed work')
+    if universal:
+        chunks.append(
+            '### Active universal policy index\n'
+            + '\n'.join(universal)
+            + '\nFull bodies are intentionally not preloaded. Retrieve applicable rule bodies before governed work.'
+        )
+    if source == 'startup':
+        try:
+            chunks.append('### Git health (read-only worktree check)\n' + git_health())
+        except Exception as error:
+            chunks.append('### Git health\ncheck incomplete: ' + str(error))
     for path in documents('plans'):
         try:
             meta, body = frontmatter(path)
@@ -661,7 +740,11 @@ def context(source='startup'):
                 next_task = next((line.strip() for line in body.splitlines() if re.match(r'\s*- \[ \]', line)), 'none')
                 log = body.split('## Log', 1)[-1] if '## Log' in body else ''
                 last = next((line for line in reversed(log.splitlines()) if line.startswith('- ')), 'none')
-                chunks.append(f"### Plan: {path.relative_to(ROOT).as_posix()}\ngoal: {meta.get('goal', 'unknown')}\nnext: {next_task}\nlast log: {last}")
+                chunks.append(
+                    f"### Plan: {path.relative_to(ROOT).as_posix()}\n"
+                    f"goal: {meta.get('goal', 'unknown')}\nnext: {next_task}\nlast log: {last}\n"
+                    + plan_git_evidence(meta)
+                )
         except Exception:
             problems.append(str(path.relative_to(ROOT)) + ': plan metadata unreadable; inspect resume state')
     if problems:
@@ -924,7 +1007,7 @@ if __name__ == '__main__':
 
 Run `verify-governance.ps1` (Windows) or `sh .claude/hooks/verify-governance.sh` (non-Windows) in Phase 3. It is deterministic and report-only: no rewriting policy, activating candidates, refreshing digests, or requesting network access. It prints findings with artifact ownership; exit 0 means no findings, 1 means findings, 2 means verification could not complete. Legacy warnings are not silently converted into successful verification. Keep the full report in the bootstrap response rather than adding a permanent run log.
 
-The shared helper checks JSON/YAML parsing (including duplicate keys), unique active rule/learning IDs, statuses, scope grammar, review age, learning evidence/validation/invalidation fields, task-evidence schema, bidirectional agent registration with exact descriptions, known stale architecture claims, and the 16,000-character startup budget. The budget includes headers, plan summaries, warnings, and any cached notice. If exceeded, the hook emits a small explicit overflow message rather than a partial rule body; agents must retrieve universal policy and plan state before work. Report requested and emitted counts and largest contributing files, without pruning user policy. Never inject learnings just because they are high-severity.
+The shared helper checks JSON/YAML parsing (including duplicate keys), unique active rule/learning IDs, statuses, scope grammar, review age, learning evidence/validation/invalidation fields, task-evidence schema, bidirectional agent registration with exact descriptions, known stale architecture claims, and the 16,000-character startup budget. Startup carries a compact universal-policy index, Git health, plan summaries, warnings, and any cached notice, not full rule bodies or learnings. If the compact index still exceeds budget, the hook emits a small explicit overflow message and agents retrieve the required policy before work. Report requested and emitted counts and largest contributing files, without pruning user policy. Never inject learnings just because they are high-severity.
 
 For each newly generated agent table row, set `When to call` to its exact frontmatter `description`, with whitespace collapsed and `|` escaped as `&#124;`. Keep `Output` concise. The shorter rows in the skeleton illustrate roles; expand their descriptions from the actual definitions when generating. This gives the verifier a deterministic accuracy check. Existing user-authored paraphrases remain unchanged and are reported for human review. The bootstrap also compares the routing heuristics and agent bodies manually; a text check cannot establish semantic accuracy.
 
@@ -944,7 +1027,7 @@ The learner may propose retrieval or agent changes, but activation requires a ba
 
 ### 1.6 Create the core agents
 
-Write these six files to `.claude/agents/`. For existing files, follow 1.0.6: update unchanged managed definitions; preserve or seek a focused migration for others. These are the **core workflow agents**, installed for every project in both modes. In Mode B, Phase 2 adds project-tailored agents on top of these; it does not replace them. Each file uses this exact YAML frontmatter format. All six use `model: inherit`; pin a specific cheaper model later only if an agent's work turns out to be genuinely mechanical.
+Write these six files to `.claude/agents/`. For existing files, follow 1.0.6: update unchanged managed definitions; preserve or seek a focused migration for others. These are the **core workflow agents**, installed for every project in both modes. In Mode B, Phase 2 adds project-tailored agents on top of these; it does not replace them. Each file uses this exact YAML frontmatter format. Route by capability tier using stable family aliases, never numbered model IDs: planner, reviewer, and debugger use `model: opus`; implementer, researcher, and learner use `model: sonnet`. Use `haiku` only for future agents whose work is genuinely mechanical and low-risk.
 
 #### `.claude/agents/planner.md`
 
@@ -953,7 +1036,7 @@ Write these six files to `.claude/agents/`. For existing files, follow 1.0.6: up
 name: planner
 description: Use before any non-trivial change. Produces a written plan in .docs/plans/ before code is touched. Invoke when the task involves more than a single small edit, when architecture decisions are needed, or when the user asks for a plan.
 tools: Read, Grep, Glob, Write, Bash, WebFetch
-model: inherit
+model: opus
 ---
 
 You are the planner. Your only job is to produce a written implementation plan before code gets touched.
@@ -980,7 +1063,7 @@ You are the planner. Your only job is to produce a written implementation plan b
 name: implementer
 description: Use after a plan exists in .docs/plans/. Writes code per the plan. Reads .docs/rules/ first. Stops and asks if the plan is missing critical information.
 tools: Read, Edit, Write, Grep, Glob, Bash
-model: inherit
+model: sonnet
 ---
 
 You are the implementer. Your job is to execute a plan that already exists.
@@ -1013,7 +1096,7 @@ You are the implementer. Your job is to execute a plan that already exists.
 name: reviewer
 description: Use after the implementer finishes a plan. Audits the diff against the plan and against .docs/rules/. Returns a structured review with severity-tagged findings.
 tools: Read, Grep, Glob, Bash
-model: inherit
+model: opus
 ---
 
 You are the reviewer. Your job is to audit completed work against the plan and the rules.
@@ -1044,7 +1127,7 @@ You are the reviewer. Your job is to audit completed work against the plan and t
 name: researcher
 description: Use when you need codebase context (where is X defined? what calls Y?) or external context (library docs, API behavior, recent changes) before making a decision. Writes findings to .docs/research/.
 tools: Read, Write, Grep, Glob, WebFetch, WebSearch, Bash
-model: inherit
+model: sonnet
 ---
 
 You are the researcher. Your job is to gather and synthesize information so the planner or implementer can decide.
@@ -1072,7 +1155,7 @@ You are the researcher. Your job is to gather and synthesize information so the 
 name: debugger
 description: Use when something is broken and the root cause is not immediately obvious. Reproduces the bug, isolates the failure, identifies the root cause, and proposes a fix. Does not apply the fix - returns it to the main agent.
 tools: Read, Grep, Glob, Bash, Edit
-model: inherit
+model: opus
 ---
 
 You are the debugger. Your job is to find root causes, not patch symptoms.
@@ -1099,7 +1182,7 @@ You are the debugger. Your job is to find root causes, not patch symptoms.
 name: learner
 description: Use after a meaningful task ends, after a bug fix, after a user correction, or via /learn. Reads recent context, distills lessons, appends to .docs/learnings/, and edits agent files or AGENTS.md if the lesson reveals a flaw. Repairs bootstrap-managed agent documentation within ownership boundaries; proposes binding rules as candidates.
 tools: Read, Edit, Write, Grep, Glob, Bash
-model: inherit
+model: sonnet
 ---
 
 You are the learner. Your job is to make sure the project gets smarter over time. You receive an explicit task-evidence record; do not infer the recent session from Git history alone.
@@ -1159,6 +1242,24 @@ description: Invoke the learner agent to distill lessons from the recent session
 Invoke the learner subagent now. First locate or create the current task-evidence record under `.docs/evidence/`; record observable attempts, user corrections, verification results, retrieved/applied memory IDs, and remaining uncertainty. Have the learner use that record to distill any genuine lessons and append them to `.docs/learnings/`. It may repair bootstrap-managed agent documentation within ownership boundaries. It may propose binding rules as candidates; activating or substantively changing binding policy requires the authorization described in AGENTS.md. It may propose style-guide changes, with repeated evidence or user confirmation required to change an established convention. Any behavioral agent, routing, or retrieval change needs a baseline-versus-candidate check before activation.
 ```
 
+Also create a tiny launcher at `.claude/commands/design-studio.md`. The launcher itself contains no specialist prompts. It instructs Claude to read the trusted module registry from the manifest's module source, install or refresh `design-studio` only when this slash command is invoked, verify the module manifest and paths, then execute the module workflow. Module source defaults to:
+
+- registry: `https://raw.githubusercontent.com/FIEF-nohell/claude-bootstrap/master/modules/registry.json`
+- repository: `FIEF-nohell/claude-bootstrap`
+
+Store fetched module payload under `.claude/modules/design-studio/`. Register native subagents only when the module is installed; prefix or otherwise namespace installed agent files so they cannot collide with core/project agents. Record the installed module name, remote version, source paths, and content digests in `.claude/modules/installed.json`. An installed module is inert until explicitly invoked and is never loaded by SessionStart.
+
+The launcher follows these rules:
+- GitHub is the canonical source for module definitions. Never invent missing remote files.
+- Fetch only the selected module and declared dependencies, never the whole module catalog.
+- Validate every manifest path as repository-relative with no traversal before writing.
+- Do not silently overwrite locally modified installed module files. Show the focused diff and ask, just like managed bootstrap artifacts.
+- Do not fetch or update modules during ordinary startup.
+- If the module is absent locally, install it automatically as part of the explicit slash-command invocation.
+- If it is already installed, use the pinned local version unless the user explicitly asks to update it.
+- Do not add module bodies to `AGENTS.md`; add only a concise installed-capability entry if needed for native routing.
+- The first shipped module is `design-studio`, an eight-role staged studio. Follow its remote `manifest.json` and `workflow.md`; do not collapse the roles into one generic design prompt.
+
 ### 1.8 Write `AGENTS.md` (canonical) and the `CLAUDE.md` pointer
 
 `AGENTS.md` holds the real instructions. `CLAUDE.md` is a thin stub that imports `AGENTS.md`. Write both now. Phase 3 fills in the project-specific bits of `AGENTS.md` at the end.
@@ -1167,14 +1268,14 @@ Invoke the learner subagent now. First locate or create the current task-evidenc
 
 **Write the `CLAUDE.md` pointer stub** with the exact content shown below, subject to 1.0.6 and preservation of existing instructions. If `CLAUDE.md` already exists and is a full instructions file (it contains the routing index rather than a pointer), do not silently overwrite it: fold anything `AGENTS.md` is missing into `AGENTS.md` first, then replace `CLAUDE.md` with the stub. If `CLAUDE.md` is already the current stub, leave it.
 
-**Version marker.** Both files carry a `> Bootstrapped by nohell v12` line directly under the H1 title. When creating them, include it as shown. When updating existing files under 1.0.6, and only after successful verification: if a `> Bootstrapped by nohell v<N>` line already exists, rewrite it to the current version; if none exists, insert it directly under the H1 title. Exactly one such line per file.
+**Version marker.** Both files carry a `> Bootstrapped by nohell v13` line directly under the H1 title. When creating them, include it as shown. When updating existing files under 1.0.6, and only after successful verification: if a `> Bootstrapped by nohell v<N>` line already exists, rewrite it to the current version; if none exists, insert it directly under the H1 title. Exactly one such line per file.
 
 #### `CLAUDE.md` pointer stub
 
 ```markdown
 # Project Instructions for AI Agents
 
-> Bootstrapped by nohell v12
+> Bootstrapped by nohell v13
 
 The project instruction entry point is `AGENTS.md`, imported below via `@AGENTS.md`; it routes to authoritative rule files and relevant memory. The import loads the full content into context automatically: do NOT Read `AGENTS.md` again manually. This file is intentionally a pointer only; never edit it during ordinary project work and never duplicate content here. Bootstrap marker/pointer migrations follow the ownership contract. Edit routing and stable facts in `AGENTS.md`, and rule bodies in their own `.docs/rules/` files.
 
@@ -1186,7 +1287,7 @@ The project instruction entry point is `AGENTS.md`, imported below via `@AGENTS.
 ````markdown
 # Project Instructions for AI Agents
 
-> Bootstrapped by nohell v12
+> Bootstrapped by nohell v13
 
 This file (`AGENTS.md`) is the routing index for any AI agent working in this repo, and the single source of truth for project instructions. `CLAUDE.md` is a thin pointer that imports this file so Claude Code loads it automatically; this file owns routing and stable project facts, while individual rule files own their full rule content.
 
@@ -1210,13 +1311,14 @@ New rules and learnings require `id`, `status`, `scope`, `priority`, `owner`, `c
 
 ## Session start protocol
 
-A SessionStart hook (`.claude/hooks/session-start.ps1`) injects the project context into every fresh session automatically: active universal rules from `.docs/rules/` and a summary of each `status: in-progress` plan, within 16,000 characters. Scoped learnings, decisions, and style guidance are retrieved during relevant work. Trust that injection; do not re-read those files at session start.
+A SessionStart hook (`.claude/hooks/session-start.ps1`) injects a compact context block into every fresh session within 16,000 characters: an index of active universal rules, read-only Git health and upstream freshness, and a summary of each `status: in-progress` plan with recent commit evidence. Full rule bodies, scoped rules, learnings, decisions, research, style guidance, and optional modules are retrieved only when relevant. Trust the index; do not preload the knowledge base at session start.
 
 At the start of a fresh session:
 
-1. Confirm the hook context block (`## Project context (auto-injected...)`) is present. If it is missing, the hook is broken: say so, then fall back to reading active universal rules, checking legacy rule metadata warnings, and finding in-progress plans yourself. If the hook reports overflow or unreadable policy, retrieve the affected full files before work; never assume omitted content imposes no constraints.
-2. If the hook surfaced an in-progress plan, apply the Resume protocol below before any new work.
-3. If the user opened with just a greeting, reply `Ready to work.` (plus the one-line resume summary if an in-progress plan exists). If a valid cached passive bootstrap notice is present at fresh startup, append its installed/available version and details URL, optionally `Say "update bootstrap" to review it.` Do not fetch or wait for an update, and never offer automatic installation. No other ceremony.
+1. Confirm the hook context block (`## Project context (auto-injected...)`) is present. If it is missing, the hook is broken: say so, then fall back to indexing active universal rules, checking Git status/upstream state without pulling, checking legacy metadata warnings, and finding in-progress plans yourself. If the hook reports overflow or unreadable policy, retrieve the affected files before governed work; never assume omitted content imposes no constraints.
+2. If this is a Git repository, report material repository state succinctly: clean/dirty and up-to-date/ahead/behind/diverged when an upstream exists. The startup helper may run `git fetch` with a short timeout to refresh remote-tracking refs, but it must never pull, merge, rebase, checkout, reset, stash, commit, or otherwise mutate the worktree.
+3. If the hook surfaced an in-progress plan, inspect that plan plus up to the latest three commits and files changed since its recorded base before calling it unfinished. If recent commits plausibly completed the remaining plan work, say the plan metadata appears stale and verify implementation state before offering resume. Do not treat an unchecked box as stronger evidence than the repository.
+4. If the user opened with just a greeting, reply `Ready to work.` plus only material Git or plan-state notes. If a valid cached passive bootstrap notice is present at fresh startup, append its installed/available version and details URL, optionally `Say "update bootstrap" to review it.` Do not fetch or wait for an update, and never offer automatic installation. No other ceremony.
 
 ## Targeted re-reads (during work)
 
@@ -1225,7 +1327,7 @@ The hook covers session start. During work, re-read selectively:
 - Before relevant work, retrieve active scoped rules and learnings and relevant decisions using affected paths and tags. Read only the relevant `.docs/styleguide/` section, following its concrete examples and existing project guidance. Research remains evidence to check, not policy.
 - Review relevant high-severity learnings when used; after 90 days without review, reconfirm, downgrade, or supersede with evidence. Do not indefinitely inject them at startup.
 - Before an action a specific rule governs, re-open that one rule file, not the whole directory.
-- Do not re-read this file or all of `.docs/rules/` per task. Once per session is the contract.
+- Do not re-read this file or all of `.docs/rules/` per task. The startup index is not the rule body: retrieve only the applicable rule files before governed work.
 
 ### Retrieval contract
 
@@ -1235,9 +1337,11 @@ Use the local retrieval helper before governed work with the task description, a
 
 Sessions get interrupted. The session-start hook surfaces any plan with `status: in-progress`. When one exists:
 
-1. Surface it to the user with: filename, goal, the next unchecked `- [ ]` task, and the most recent Log entry.
-2. Ask the user: resume the in-progress plan, switch to the new request (leaving the old plan in-progress), or abandon it (set `status: abandoned` with a Log entry explaining why).
-3. Do not silently start fresh work while a plan is in-progress.
+1. Read the plan and compare its recorded `base:` with HEAD. Inspect up to the latest three relevant commits and the files changed since base.
+2. If repository evidence plausibly satisfies the remaining unchecked tasks, treat the plan metadata as potentially stale. Verify the implementation and, if complete, reconcile the plan status/log instead of asking the user to resume already-finished work.
+3. If work is genuinely still open, surface: filename, goal, next unchecked `- [ ]` task, most recent Log entry, and the relevant recent commit evidence.
+4. Ask the user to resume, switch, or abandon only when the correct continuation is not already clear from their request and repository evidence.
+5. Do not silently start unrelated fresh work while genuinely unfinished plan work is active.
 
 If the current request explicitly chooses resume, switch, or abandon, honor that choice without asking again; the confirmation applies when the choice is unclear. If the user's request is itself the continuation of an existing plan, jump straight to the implementer with that plan path.
 
@@ -1250,7 +1354,8 @@ See `.docs/rules/plan-execution.md` for the full plan format and execution proto
 ├── settings.json        permissions and hook wiring
 ├── bootstrap-manifest.json  current ownership and update source
 ├── agents/              subagent definitions (YAML frontmatter)
-├── commands/            slash commands
+├── commands/            core slash commands and tiny lazy-module launchers
+├── modules/             lazily fetched capability packs; inert until invoked
 └── hooks/               context hook, passive updater, governance verifier
 
 .docs/
@@ -1310,7 +1415,7 @@ If you finish a task and decide it does not warrant invoking the learner, that i
 
 - Plans live in `.docs/plans/`. Filename format: `YYYY-MM-DD-<short-slug>.md`. Format and execution protocol defined in `.docs/rules/plan-execution.md`. Plans carry `status:` and `base:` frontmatter, milestone+checkbox bodies, and an append-only Log.
 - Learnings live in `.docs/learnings/`. Filename format: `YYYY-MM-DD-<short-slug>.md`. New files require governance metadata plus `date`, `tags`, `severity`, `applies-to`; preserve legacy files and report missing metadata.
-- Rules live in `.docs/rules/`. One concept per file. Short, imperative. Only active universal rules are injected at startup; scoped rules are retrieved before governed work. New binding proposals remain candidates until authorized.
+- Rules live in `.docs/rules/`. One concept per file. Short, imperative. Startup injects only an index of active universal rules; full bodies and scoped rules are retrieved before governed work. New binding proposals remain candidates until authorized.
 - Research notes live in `.docs/research/`. Filename format: `YYYY-MM-DD-<short-slug>.md`.
 - Never modify `.docs/rules/` casually. The learner proposes candidates; only authorized promotions create active binding policy.
 - Never delete from `.docs/learnings/`. The learner can supersede an old learning by writing a newer one and editing the old one to set `status: superseded` and add a `superseded-by:` link, preserving evidence and history. Do not force metadata migrations on legacy files.
