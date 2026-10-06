@@ -1,5 +1,5 @@
 ---
-name: motion-designer
+name: design-studio-motion-designer
 description: Define a purposeful motion and interaction grammar including timing, easing, transitions, feedback, and reduced-motion behavior.
 tools: Read, Grep, Glob, Write, WebFetch, WebSearch
 model: sonnet
