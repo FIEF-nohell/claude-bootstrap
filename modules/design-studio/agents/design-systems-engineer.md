@@ -1,7 +1,7 @@
 ---
 name: design-studio-design-systems-engineer
 description: Convert approved design direction into implementable tokens, component rules, variants, states, accessibility constraints, and system documentation.
-tools: Read, Grep, Glob, Write, Bash
+tools: Read, Grep, Glob, Edit, Write, Bash
 model: sonnet
 ---
 
