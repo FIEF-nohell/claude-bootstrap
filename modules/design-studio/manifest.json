@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "name": "design-studio",
-  "version": 2,
-  "description": "Eight-role design studio that maintains a runnable stack-native mockup and synchronized living design system through staged specialist critique.",
+  "version": 3,
+  "description": "Eight-role design studio with research-backed anti-default gates, independent critique, and a living stack-native mockup/design system.",
   "commands": [
     {
       "name": "design-studio",
@@ -29,7 +29,8 @@
     "agents/ui-designer.md",
     "agents/art-director.md",
     "agents/motion-designer.md",
-    "agents/design-systems-engineer.md"
+    "agents/design-systems-engineer.md",
+    "references/craft-standards.md"
   ],
   "memory_domains": [
     "brand",
@@ -47,5 +48,6 @@
     "mockup": ".design-studio/mockup/ or project-established prototype location",
     "style_guide": ".docs/design/STYLE_GUIDE.md",
     "tokens": ".docs/design/tokens.json or project-native token source"
-  }
+  },
+  "quality_reference": "references/craft-standards.md"
 }
