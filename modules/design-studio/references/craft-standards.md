@@ -27,9 +27,17 @@ Use one of four modes:
 
 For Operate surfaces, scanability, task clarity, repeated-use comfort, state handling, and platform expectations outrank spectacle. Distinctiveness should live in structure, typography, interaction, rhythm, and a small number of memorable details.
 
-## 3. Anti-default gate
+## 3. Anti-default reflex check
 
-Unless the brief explicitly earns them, reject these as first-choice patterns:
+Do not treat common UI patterns as forbidden. Familiarity is often good product design. The failure is using a pattern automatically without checking whether it serves the product.
+
+Use this list as a reflex check, not a ban list. A familiar card, tab bar, system font, progress visualization, or rounded control is valid when it improves clarity or matches the platform. Reject it only when it is substituting for hierarchy, product thinking, or craft.
+
+The preferred default for product UI is:
+
+**familiar shell + product-specific core interaction + unusually careful execution**
+
+Ask whether the design is relying too heavily on any of these defaults:
 
 - piles of same-size rounded cards used as page structure
 - nested cards
@@ -46,7 +54,23 @@ Unless the brief explicitly earns them, reject these as first-choice patterns:
 - motion consisting of identical fade/slide entrances everywhere
 - fake technical styling such as monospace used decoratively
 
-Cards are allowed when an object genuinely needs containment. They are not the default answer to spacing.
+Cards are appropriate when an object genuinely benefits from containment, grouping, elevation, or interaction. They become a problem when every region is independently boxed and hierarchy disappears into a stack of equal-weight containers.
+
+The goal is not visual novelty. A polished, conventional solution is better than a distinctive solution that feels forced, themed, or less usable.
+
+## 3.5 Familiarity and identity
+
+For Operate-mode product UI:
+
+- preserve platform-native expectations for navigation, back behavior, sheets, forms, selection, and controls
+- keep the main task immediately understandable without explanation
+- concentrate identity in a few durable places: typography, spacing rhythm, data/goal visualization, one core interaction, copy tone, icon treatment, or content imagery
+- accent color should usually be selective rather than painted across every control
+- avoid visual metaphors that force every surface to imitate a physical object
+- metaphors may inspire one interaction or organizing principle, but they must not become a costume
+- when in doubt between clever and clear, choose clear, then improve the craft
+
+A design can be specific without being strange. The test is whether its composition, interaction, and detail feel intentional for this product, not whether nobody has ever used the same component before.
 
 ## 4. Composition before chrome
 
@@ -175,7 +199,13 @@ Each critique must name:
 - concrete improvement
 - specificity verdict: authored for this product or category-interchangeable
 
-A category-interchangeable verdict blocks approval.
+A category-interchangeable verdict does not automatically block approval if the interface is intentionally conventional and exceptionally well executed. It blocks approval only when the sameness comes from unexamined defaults rather than a deliberate choice.
+
+A forced-or-costumed verdict also blocks approval. Reviewers must explicitly distinguish:
+- generic by accident
+- familiar by intent
+- specific and appropriate
+- forced originality
 
 ## 12. Bounded visual QA
 
