@@ -1,5 +1,5 @@
 ---
-name: ux-architect
+name: design-studio-ux-architect
 description: Own information architecture, navigation, flows, hierarchy, states, edge cases, and usability constraints.
 tools: Read, Grep, Glob, Write, WebFetch, WebSearch
 model: opus
