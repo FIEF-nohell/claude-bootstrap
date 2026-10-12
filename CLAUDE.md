@@ -1,6 +1,6 @@
 # Maintenance instructions
 
-This repo holds a single prompt file, `claude-bootstrap-prompt.md`, that is iterated on over time. Older versions are archived in `old-versions/`.
+This repo holds a single prompt file, `claude-bootstrap-prompt.md`, that is iterated on over time, plus tests for the Python helper embedded in it. Older versions are archived in `old-versions/`.
 
 ## Versioning workflow (mandatory before every edit)
 
@@ -15,7 +15,11 @@ When the user asks for a change to `claude-bootstrap-prompt.md`, follow this exa
 
 3. **Edit the root `claude-bootstrap-prompt.md`** with the requested changes.
 
-4. **Confirm to the user** which version was archived and that the root file now contains the new version.
+4. **Keep the release metadata in step.** Bump `bootstrap-release.json` and the README (status line and a new `### v<N>` section under "Bootstrap update details") to the new prompt version, and add the matching migration in step 1.0.5 of the prompt.
+
+5. **Run the tests** (`python3 -m unittest discover -s tests`; needs PyYAML). They extract the embedded helper from the prompt and run it against disposable fixtures, and `tests/test_release.py` fails when version strings disagree.
+
+6. **Confirm to the user** which version was archived, that the root file now contains the new version, and the test result.
 
 ## Rules
 

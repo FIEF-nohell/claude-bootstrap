@@ -72,6 +72,7 @@ When run, it produces (or merges into existing files):
     plans/                     implementation plans, one per task (frontmatter carries a base sha for exact review diffs)
     learnings/                 contextual lessons, updated or superseded without deletion
     rules/                     hard rules, more granular than AGENTS.md (seeded: plan-execution, agent-docs-sync, docs-current-state-only; Phase 3 adds verification)
+    workflows/                 procedures AGENTS.md routes to: session-start, retrieval, self-improvement
     decisions/                 settled choices, alternatives, rationale, and evidence
     styleguide/                preferred conventions supported by repository evidence
     research/                  findings from the researcher agent (incl. Mode B context note)
@@ -129,12 +130,20 @@ The bootstrap also gains a remote module registry. Optional capability packs rem
 
 Only a fresh startup triggers an asynchronous check. Results, including failures, are cached for 24 hours outside the repository. Startup reads the cache without waiting for the network, so a cold-cache result normally appears on the next fresh startup. Requests have a 2.5-second total deadline; failures are silent. Notices contain only version information and the trusted details URL. No update is downloaded or installed. Set `CLAUDE_BOOTSTRAP_UPDATE_CHECK=0`, or set `update-source.enabled` to `false` in the manifest, to opt out. No trusted source means no request.
 
+### v14
+
+Shrinks what every session loads. The generated `AGENTS.md` is now an index (precedence, a "read this when" table, the agent table, project facts) of about 6,300 characters, down from about 15,600 for the v13 skeleton. Procedures moved to `.docs/workflows/` (session-start, retrieval, self-improvement) and `.docs/rules/plan-execution.md`, so each procedure has exactly one owner file. The verifier now fails when the installed version markers disagree with the manifest or when `AGENTS.md` plus `CLAUDE.md` exceed 12,000 characters.
+
+The runtime helper gains a `retrieve` mode (deterministic scope matching, lexical ranking of learnings and decisions, conflict and coverage reporting), runs Git without terminal prompts or optional locks, and treats a Git timeout as unknown instead of clean. Permissions gain an `ask` list, and `node`, `npx`, `git checkout`, `git restore`, and `git switch` leave the allow list. Module source is pinned to a commit SHA in the manifest (`module-source.ref`), so a later push to the repo cannot change what an installed project downloads. A v13 repo upgrades through step 1.0.5 item 12, which shows diffs and asks before changing anything it does not own. This repo now ships tests (`python3 -m unittest discover -s tests`) that run the embedded helper against fixtures.
+
 ## Permissions baked in
 
 The bootstrap commits an opinionated permissions allowlist to `.claude/settings.json`:
 
-- Auto-allow: agent self-editing, doc writes, slash command and hook writes, standard dev Bash (`pnpm`, `npm`, `cargo`, `git status`, `git add`, `git commit`, etc).
+- Auto-allow: agent self-editing, doc writes, slash command and hook writes, read-only Git, `git add`/`git commit`, and package scripts in the form `<pm> run`, `<pm> test`, `<pm> install` (plus `cargo` checks for Rust). `node` and `npx` are not allowed and prompt.
+- Ask: `git checkout`, `git restore`, `git switch`, `git reset`, `git push`, `git branch -D`, `git stash drop`, `rm`.
 - Auto-deny: destructive ops (`rm -rf /*`, `git push --force`, `git reset --hard`, `git clean`).
+- The ask and deny lists are tripwires, not a sandbox: a permitted package script can still run arbitrary code.
 - `Edit(CLAUDE.md)` is deliberately not allowed: the pointer stub never needs edits, so a permission prompt on it acts as a tripwire.
 
 These are committed, not local, so the same setup is portable across machines.
@@ -154,4 +163,4 @@ The full versioning workflow is in `CLAUDE.md`. Short version: archive first, ed
 
 ## Status
 
-Pre-1.0. Iterating. V13 adds compact adaptive startup context, Git/plan reconciliation, stable capability-tier model routing, and lazy remote modules with `design-studio` as the first capability pack. Feedback welcome.
+Pre-1.0. Iterating. V14 slims the always-loaded `AGENTS.md` into an index, moves procedures into `.docs/workflows/`, adds a tested `retrieve` mode to the runtime helper, hardens permissions and Git calls, and pins lazy modules to a commit. Feedback welcome.
