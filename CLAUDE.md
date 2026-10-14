@@ -15,7 +15,7 @@ When the user asks for a change to `claude-bootstrap-prompt.md`, follow this exa
 
 3. **Edit the root `claude-bootstrap-prompt.md`** with the requested changes.
 
-4. **Keep the release metadata in step.** Bump `bootstrap-release.json` and the README (status line and a new `### v<N>` section under "Bootstrap update details") to the new prompt version, and add the matching migration in step 1.0.5 of the prompt.
+4. **Keep the module pin and release metadata in step.** If anything under `modules/` changed, commit and push that first, then run `python3 tools/pin_modules.py` (it pins the prompt to the last commit that touched `modules/`; `tests/test_release.py` fails when the pin is stale). Then bump `bootstrap-release.json` and the README (status line and a new `### v<N>` section under "Bootstrap update details") to the new prompt version, and add the matching migration in step 1.0.5 of the prompt.
 
 5. **Run the tests** (`python3 -m unittest discover -s tests`; needs PyYAML). They extract the embedded helper from the prompt and run it against disposable fixtures, and `tests/test_release.py` fails when version strings disagree.
 

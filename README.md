@@ -134,16 +134,16 @@ Only a fresh startup triggers an asynchronous check. Results, including failures
 
 Shrinks what every session loads. The generated `AGENTS.md` is now an index (precedence, a "read this when" table, the agent table, project facts) of about 6,300 characters, down from about 15,600 for the v13 skeleton. Procedures moved to `.docs/workflows/` (session-start, retrieval, self-improvement) and `.docs/rules/plan-execution.md`, so each procedure has exactly one owner file. The verifier now fails when the installed version markers disagree with the manifest or when `AGENTS.md` plus `CLAUDE.md` exceed 12,000 characters.
 
-The runtime helper gains a `retrieve` mode (deterministic scope matching, lexical ranking of learnings and decisions, conflict and coverage reporting), runs Git without terminal prompts or optional locks, and treats a Git timeout as unknown instead of clean. Permissions gain an `ask` list, and `node`, `npx`, `git checkout`, `git restore`, and `git switch` leave the allow list. Module source is pinned to a commit SHA in the manifest (`module-source.ref`), so a later push to the repo cannot change what an installed project downloads. A v13 repo upgrades through step 1.0.5 item 12, which shows diffs and asks before changing anything it does not own. This repo now ships tests (`python3 -m unittest discover -s tests`) that run the embedded helper against fixtures.
+The runtime helper gains a `retrieve` mode (deterministic scope matching, lexical ranking of learnings and decisions, conflict and coverage reporting), runs Git without terminal prompts or optional locks, and treats a Git timeout as unknown instead of clean. Permissions keep the v13 allowances, add routine `git push`/`reset`/`rm`, deny delete pushes and `rm` of `/`, `~`, and `.git`, and ask only for `git branch -D` and `git stash drop`. Module source is pinned to a commit SHA in the manifest (`module-source.ref`), so a later push to the repo cannot change what an installed project downloads. `tools/pin_modules.py` sets the pin to the last commit that touched `modules/`, and a test fails when it is stale; projects pick up a newer pin when they re-run the bootstrap. A v13 repo upgrades through step 1.0.5 item 12, which adds missing files and permission entries silently and asks once, with a single diff, before replacing existing content. This repo now ships tests (`python3 -m unittest discover -s tests`) that run the embedded helper against fixtures.
 
 ## Permissions baked in
 
 The bootstrap commits an opinionated permissions allowlist to `.claude/settings.json`:
 
-- Auto-allow: agent self-editing, doc writes, slash command and hook writes, read-only Git, `git add`/`git commit`, and package scripts in the form `<pm> run`, `<pm> test`, `<pm> install` (plus `cargo` checks for Rust). `node` and `npx` are not allowed and prompt.
-- Ask: `git checkout`, `git restore`, `git switch`, `git reset`, `git push`, `git branch -D`, `git stash drop`, `rm`.
-- Auto-deny: destructive ops (`rm -rf /*`, `git push --force`, `git reset --hard`, `git clean`).
-- The ask and deny lists are tripwires, not a sandbox: a permitted package script can still run arbitrary code.
+- Auto-allow: agent self-editing, doc writes, slash command and hook writes, routine Git (including `switch`, `checkout`, `restore`, `reset`, `push`), `rm`, `node`/`npx`/package managers, and `cargo` checks for Rust. The goal is a normal day of work with no permission questions.
+- Ask (rare, irreversible): `git branch -D`, `git stash drop`.
+- Auto-deny: force and delete pushes, `git reset --hard`, `git clean`, and `rm` of `/`, `~`, or `.git`.
+- These lists are tripwires, not a sandbox: a permitted script or `rm` can still do damage. That is the accepted tradeoff for an unprompted workflow.
 - `Edit(CLAUDE.md)` is deliberately not allowed: the pointer stub never needs edits, so a permission prompt on it acts as a tripwire.
 
 These are committed, not local, so the same setup is portable across machines.

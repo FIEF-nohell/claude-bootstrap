@@ -1,6 +1,7 @@
 import json
 import re
 import subprocess
+import sys
 import unittest
 
 from helpers import PROMPT, REPO, prompt_text
@@ -64,17 +65,22 @@ class ReleaseTests(unittest.TestCase):
         self.assertIn('/master/', data['update-source']['metadata-url'])
 
     def test_archive_matches_master(self):
-        versions = [int(v) for v in re.findall(r'nohell v(\d+)', self.prompt)]
-        highest = max(versions)
-        archive = REPO / 'old-versions' / f'claude-bootstrap-prompt-v{highest}.md'
-        self.assertTrue(archive.is_file(), f'{archive.name} missing')
+        # Archive numbers are an edit counter, so the invariant is that master's prompt is preserved somewhere.
         have = subprocess.run(['git', 'rev-parse', '--verify', '-q', 'refs/heads/master'], cwd=REPO, capture_output=True)
         if have.returncode != 0:
             self.skipTest('no local master branch')
         shown = subprocess.run(['git', 'show', 'master:claude-bootstrap-prompt.md'], cwd=REPO, capture_output=True)
         self.assertEqual(shown.returncode, 0, shown.stderr)
-        self.assertEqual(archive.read_bytes(), shown.stdout,
-                         'archive is not byte-identical to master:claude-bootstrap-prompt.md')
+        if shown.stdout == (REPO / 'claude-bootstrap-prompt.md').read_bytes():
+            return  # master already is the current prompt
+        archives = sorted((REPO / 'old-versions').glob('claude-bootstrap-prompt-v*.md'))
+        self.assertTrue(any(a.read_bytes() == shown.stdout for a in archives),
+                        'master:claude-bootstrap-prompt.md is not preserved in old-versions/')
+
+    def test_module_pin_is_current(self):
+        pin = subprocess.run([sys.executable, str(REPO / 'tools' / 'pin_modules.py'), '--check'],
+                             cwd=REPO, capture_output=True, text=True)
+        self.assertEqual(pin.returncode, 0, pin.stdout + pin.stderr + ' (run python3 tools/pin_modules.py)')
 
 
 if __name__ == '__main__':

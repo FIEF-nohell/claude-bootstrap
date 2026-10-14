@@ -100,7 +100,7 @@ If none of these are present, this is a fresh bootstrap: skip the rest of 1.0.5 
 
 11. **Upgrade v12 startup, model routing, and capability loading.** For v12 and earlier, migrate managed startup/runtime sections so SessionStart no longer injects full universal rule bodies. Install the compact policy index, read-only Git health and remote freshness check, plan-vs-recent-commit reconciliation guidance, the module runtime/launcher described below, and stable family model aliases for unchanged managed core agents. Do not overwrite user-modified agents without the focused-diff confirmation required by 1.0.6. Preserve any trusted update-source override.
 
-12. **Upgrade v13 to the lean index (v13 and earlier).** Four parts under 1.0.6. Part (a) only creates missing files and needs no confirmation; parts (b) to (d) are never applied silently. (a) Add `.docs/workflows/` with its README, `session-start.md`, `retrieval.md`, and `self-improvement.md` from step 1.5.8 (seeded-user-editable; skip any that exist). (b) If `AGENTS.md` still carries the v13 sections `## Instruction hierarchy and memory governance`, `## Session start protocol`, `## Targeted re-reads (during work)` with its `### Retrieval contract`, `## Resume protocol`, `## Repository layout for AI machinery`, `## Self-improvement loop (this is core, do not skip it)`, `### Agent docs must stay in sync (non-negotiable)`, or the long `## Hard conventions` list, show one focused diff replacing them with the v14 `## Precedence`, `## When to read what`, `## Session start`, `## Layout`, `## Self-improvement`, and shortened `## Hard conventions` sections. Fold any user-added text from those sections into the matching workflow or rule file instead of dropping it, then ask before applying. Propose, never apply, the matching Resume protocol update to the seeded `.docs/rules/plan-execution.md`. (c) In `.claude/settings.json`, for recorded entries only: remove `Bash(git checkout:*)`, `Bash(git restore:*)`, `Bash(git switch:*)`, `Bash(node:*)`, and `Bash(npx:*)`, replace the bare package-manager wildcards with the `run`, `test`, and `install` forms (plus `npm ci`) from step 1.4, and add the `ask` entries. Show the diff and ask. (d) Replace the managed runtime helper and launchers when their digests are unchanged (the helper gains the `retrieve` mode, a non-interactive Git environment, and the marker-version and always-loaded-size checks), otherwise show the diff. When `module-source.repository` is `FIEF-nohell/claude-bootstrap` and `ref` is absent, set `ref` to the pin in 1.0.6 and rewrite `registry-url` to the pinned form. For any other repository, leave `ref` absent and say once that the module source is unpinned. Never give a fork the upstream SHA.
+12. **Upgrade v13 to the lean index (v13 and earlier).** Four parts under 1.0.6. Parts (a) and (c) only add missing files and entries and need no confirmation. Parts (b) and (d) replace existing content: present them together as one diff and ask once, not part by part. (a) Add `.docs/workflows/` with its README, `session-start.md`, `retrieval.md`, and `self-improvement.md` from step 1.5.8 (seeded-user-editable; skip any that exist). (b) If `AGENTS.md` still carries the v13 sections `## Instruction hierarchy and memory governance`, `## Session start protocol`, `## Targeted re-reads (during work)` with its `### Retrieval contract`, `## Resume protocol`, `## Repository layout for AI machinery`, `## Self-improvement loop (this is core, do not skip it)`, `### Agent docs must stay in sync (non-negotiable)`, or the long `## Hard conventions` list, show one focused diff replacing them with the v14 `## Precedence`, `## When to read what`, `## Session start`, `## Layout`, `## Self-improvement`, and shortened `## Hard conventions` sections. Fold any user-added text from those sections into the matching workflow or rule file instead of dropping it, then ask before applying. Propose, never apply, the matching Resume protocol update to the seeded `.docs/rules/plan-execution.md`. (c) In `.claude/settings.json`, merge in any missing v14 `permissions` entries from step 1.4 (additive; existing entries stay, including the v13 `node`, `npx`, package-manager, `checkout`, `restore`, and `switch` allows). Additions need no confirmation. (d) Replace the managed runtime helper and launchers when their digests are unchanged (the helper gains the `retrieve` mode, a non-interactive Git environment, and the marker-version and always-loaded-size checks), otherwise show the diff. When `module-source.repository` is `FIEF-nohell/claude-bootstrap` and `ref` is absent, set `ref` to the pin in 1.0.6 and rewrite `registry-url` to the pinned form. For any other repository, leave `ref` absent and say once that the module source is unpinned. Never give a fork the upstream SHA.
 
 13. **Record what you migrated** so the Phase 3 summary can report it (prior version, what was removed, folded, reconciled, or left).
 
@@ -133,7 +133,7 @@ Initial shape (populate `artifacts` from actual results, never leave placeholder
 }
 ```
 
-`module-source.ref` is the full 40-character commit SHA this release trusts. Every module file is fetched from `raw.githubusercontent.com/<repository>/<ref>/<path>`, never from a branch, so a later push to the repository cannot change what an installed project downloads. Raising the pin is deliberate: a new bootstrap release, or an explicit user request. A fork may override `repository` and `ref`. The update notifier's `metadata-url` stays on `master` because it fetches version metadata only and never code.
+`module-source.ref` is the full 40-character commit SHA this release trusts. Every module file is fetched from `raw.githubusercontent.com/<repository>/<ref>/<path>`, never from a branch, so a later push to the repository cannot change what an installed project downloads. The pin moves only with a new bootstrap release, set by the maintenance repo's `tools/pin_modules.py` to the last commit that touched `modules/`, and `tests/test_release.py` fails if it is stale. An installed project picks up a newer pin when it re-runs the bootstrap, which the passive update notice announces; nothing else changes a project's module code. A fork may override `repository` and `ref`. The update notifier's `metadata-url` stays on `master` because it fetches version metadata only and never code.
 
 Each artifact record has `path` (repository-relative, forward slashes, no traversal), `ownership`, `bootstrap-version`, `template-version`, `digest` (SHA-256 of exact last-installed bytes, or null when provenance is unknown), and `source` (an object with `repository`, `path`, and `section` for the canonical repository URL, prompt path, and section/template identifier). A digest is an installed baseline, never proof of unknown prior ownership. For mixed Markdown, use `ownership: merged` and `blocks: [{"id": "bootstrap-session", "digest": "sha256:<actual hash>"}]`; hash the exact bytes between the markers. For JSON settings, use `ownership: merged` and `json-entries`: exact JSON pointers plus baseline values/digests for the keys or hook/permission entries actually added. This is the explicit managed boundary for JSON, which cannot contain comment markers. Identify array entries by their recorded value, not an index that shifts when a user inserts an entry. Hash JSON values as UTF-8 JSON with sorted keys and compact separators; compare baseline values structurally before any update. Leave unrecorded entries untouched.
 
@@ -273,16 +273,23 @@ Create this file if it does not exist. Record the exact entries added under 1.0.
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(git stash:*)",
+      "Bash(git switch:*)",
+      "Bash(git checkout:*)",
+      "Bash(git restore:*)",
+      "Bash(git reset:*)",
+      "Bash(git push:*)",
       "Bash(git rev-parse:*)",
       "Bash(ls)",
       "Bash(ls:*)",
       "Bash(pwd)",
       "Bash(cat:*)",
       "Bash(which:*)",
-      "Bash(npm run:*)",
-      "Bash(npm test:*)",
-      "Bash(npm ci)",
-      "Bash(npm install)",
+      "Bash(node:*)",
+      "Bash(pnpm:*)",
+      "Bash(npm:*)",
+      "Bash(npx:*)",
+      "Bash(yarn:*)",
+      "Bash(bun:*)",
       "Bash(cargo build:*)",
       "Bash(cargo check:*)",
       "Bash(cargo test:*)",
@@ -290,24 +297,24 @@ Create this file if it does not exist. Record the exact entries added under 1.0.
       "Bash(cargo fmt:*)",
       "Bash(mkdir:*)",
       "Bash(touch:*)",
+      "Bash(rm:*)",
       "Bash(gh issue view:*)",
       "Bash(gh pr view:*)",
       "Bash(gh repo view:*)"
     ],
     "ask": [
-      "Bash(git checkout:*)",
-      "Bash(git restore:*)",
-      "Bash(git switch:*)",
-      "Bash(git reset:*)",
       "Bash(git branch -D:*)",
-      "Bash(git stash drop:*)",
-      "Bash(git push:*)",
-      "Bash(rm:*)"
+      "Bash(git stash drop:*)"
     ],
     "deny": [
       "Bash(rm -rf /*)",
+      "Bash(rm -rf /:*)",
+      "Bash(rm -rf ~:*)",
+      "Bash(rm -rf .git:*)",
       "Bash(git push --force:*)",
       "Bash(git push -f:*)",
+      "Bash(git push --delete:*)",
+      "Bash(git push origin --delete:*)",
       "Bash(git reset --hard:*)",
       "Bash(git clean:*)"
     ]
@@ -338,7 +345,7 @@ Create this file if it does not exist. Record the exact entries added under 1.0.
 }
 ```
 
-Only include the `cargo` entries when the stack includes rust. When the stack includes node, include the `npm` entries shown, in the form `<pm> run:*`, `<pm> test:*`, and `<pm> install`, for each detected package manager (`npm`, `pnpm`, `yarn`, `bun`), plus `npm ci` for npm only; in Mode A with no stack, include all four. `node` and `npx` are deliberately absent so they prompt. The `ask` and `deny` lists are tripwires that surface risky commands, not a sandbox: a permitted package script can still run arbitrary code. If this machine is not Windows, use `sh .claude/hooks/session-start.sh` and `sh .claude/hooks/bootstrap-update.sh` with the same behavior as 1.5.5. Resolve the project root from each script location, not the event cwd. Keep existing unrelated hooks. Deduplicate by command and matcher; migration of an old recorded hook follows 1.0.6.
+Only include the `cargo` entries when the stack includes rust, and the node entries (`node`, `npx`, and the package managers) when it includes node; in Mode A with no stack, include the node set. The design goal is a normal day of work with no permission questions: routine Git, package scripts, and file cleanup are allowed, the genuinely destructive forms are denied outright (force or delete pushes, `reset --hard`, `clean`, `rm` of the filesystem root, home, or `.git`), and only rare irreversible Git operations (`branch -D`, `stash drop`) ask. These lists are tripwires, not a sandbox: a permitted package script or `rm` can still do damage, which is the accepted tradeoff for an unprompted workflow. Do not add entries that make routine work prompt. If this machine is not Windows, use `sh .claude/hooks/session-start.sh` and `sh .claude/hooks/bootstrap-update.sh` with the same behavior as 1.5.5. Resolve the project root from each script location, not the event cwd. Keep existing unrelated hooks. Deduplicate by command and matcher; migration of an old recorded hook follows 1.0.6.
 
 Note: `Edit(CLAUDE.md)` is deliberately absent from the allow list. The pointer stub should never need editing; a permission prompt on any attempt to edit it is a useful tripwire.
 
