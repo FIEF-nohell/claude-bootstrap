@@ -307,7 +307,7 @@ Create this file if it does not exist. Record the exact entries added under 1.0.
         "hooks": [
           {
             "type": "command",
-            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File .claude/hooks/session-start.ps1",
+            "command": "sh -c 'if command -v powershell.exe >/dev/null 2>&1; then exec powershell.exe -NoProfile -ExecutionPolicy Bypass -File .claude/hooks/session-start.ps1; else exec sh .claude/hooks/session-start.sh; fi'",
             "timeout": 5
           }
         ]
@@ -317,7 +317,7 @@ Create this file if it does not exist. Record the exact entries added under 1.0.
         "hooks": [
           {
             "type": "command",
-            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File .claude/hooks/bootstrap-update.ps1",
+            "command": "sh -c 'if command -v powershell.exe >/dev/null 2>&1; then exec powershell.exe -NoProfile -ExecutionPolicy Bypass -File .claude/hooks/bootstrap-update.ps1; else exec sh .claude/hooks/bootstrap-update.sh; fi'",
             "async": true
           }
         ]
@@ -327,7 +327,7 @@ Create this file if it does not exist. Record the exact entries added under 1.0.
 }
 ```
 
-Only include the `cargo` entries when the stack includes rust; only include the node package-manager entries when the stack includes node (in Mode A with no stack, include the node set). If this machine is not Windows, use `sh .claude/hooks/session-start.sh` and `sh .claude/hooks/bootstrap-update.sh` with the same behavior as 1.5.5. Resolve the project root from each script location, not the event cwd. Keep existing unrelated hooks. Deduplicate by command and matcher; migration of an old recorded hook follows 1.0.6.
+Only include the `cargo` entries when the stack includes rust; only include the node package-manager entries when the stack includes node (in Mode A with no stack, include the node set). The hook commands above detect the OS at run time (`powershell.exe` on PATH means Windows, otherwise `sh`), so one committed `settings.json` works on Windows and macOS/Linux. Always write both launcher sets from 1.5.5 (`.ps1` and `.sh`) regardless of the machine running the bootstrap, and never hard-code `powershell.exe` as the whole command. Resolve the project root from each script location, not the event cwd. Keep existing unrelated hooks. Deduplicate by command and matcher; migration of an old recorded hook follows 1.0.6.
 
 Note: `Edit(CLAUDE.md)` is deliberately absent from the allow list. The pointer stub should never need editing; a permission prompt on any attempt to edit it is a useful tripwire.
 
@@ -483,7 +483,7 @@ $hookInput | & python -X utf8 (Join-Path $PSScriptRoot 'bootstrap-runtime.py') c
 exit $LASTEXITCODE
 ```
 
-On non-Windows write the corresponding `.sh` launchers, using the verified `python3` command and modes `context`, `update`, or `verify` (stdin is inherited):
+Also write the corresponding `.sh` launchers (always, not only on non-Windows machines), using the verified `python3` command and modes `context`, `update`, or `verify` (stdin is inherited):
 
 ```sh
 #!/bin/sh
